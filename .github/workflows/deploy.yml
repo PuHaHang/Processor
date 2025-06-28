@@ -1,0 +1,64 @@
+name: Spring Boot Temporary Deploy CI with Gradle
+
+on: 
+  pull_request:
+    types:
+      - closed
+    branches: 
+      - dev
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Python App to Temporary Server
+    runs-on: ubuntu-24.04
+    if: github.event.pull_request.merged == true
+
+    environment:
+      name: test
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Create .env file
+      run: |
+        echo "SERVER_PORT=${{ vars.SERVER_PORT }}" > .env
+        echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
+        echo "POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}" >> .env
+        echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
+        echo "POSTGRES_PW=${{ secrets.POSTGRES_PW }}" >> .env
+        echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
+
+    - name: Build Docker image
+      run: |
+        docker build \
+          --build-arg PYTHON_VERSION=3.12 \
+          --build-arg APPLICATION_NAME=${{ vars.APPLICATION_NAME }} \
+          -t ${{ vars.APPLICATION_NAME }}:latest .
+        docker save ${{ vars.APPLICATION_NAME }}:latest -o ${{ vars.APPLICATION_NAME }}.tar
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Copy image, .env to server
+      run: |
+        scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no .env ${{ secrets.SSH_PUBLISHER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_PUBLISHER }}/.env
+        scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ vars.APPLICATION_NAME }}.tar ${{ secrets.SSH_PUBLISHER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_PUBLISHER }}/${{ vars.APPLICATION_NAME }}.tar
+
+    - name: Load and run image on server
+      run: |
+        ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_PUBLISHER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          docker load -i /home/${{ secrets.SSH_PUBLISHER }}/${{ vars.APPLICATION_NAME }}.tar
+          docker stop ${{ vars.APPLICATION_NAME }} || true && docker rm ${{ vars.APPLICATION_NAME }} || true
+          docker run -d -p ${{ vars.SERVER_PORT }}:${{ vars.SERVER_PORT }} \
+            --env-file /home/${{ secrets.SSH_PUBLISHER }}/.env \
+            --name ${{ vars.APPLICATION_NAME }} ${{ vars.APPLICATION_NAME }}:latest
+        EOF
