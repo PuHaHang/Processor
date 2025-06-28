@@ -39,9 +39,9 @@ jobs:
       run: |
         docker build \
           --build-arg PYTHON_VERSION=3.12 \
-          --build-arg APPLICATION_NAME=${{ vars.APPLICATION_NAME }} \
-          -t ${{ vars.APPLICATION_NAME }}:latest .
-        docker save ${{ vars.APPLICATION_NAME }}:latest -o ${{ vars.APPLICATION_NAME }}.tar
+          --build-arg APPLICATION_NAME=${{ vars.PROCESSOR_NAME }} \
+          -t ${{ vars.PROCESSOR_NAME }}:latest .
+        docker save ${{ vars.PROCESSOR_NAME }}:latest -o ${{ vars.PROCESSOR_NAME }}.tar
 
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.9.0
@@ -51,14 +51,14 @@ jobs:
     - name: Copy image, .env to server
       run: |
         scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no .env ${{ secrets.SSH_PUBLISHER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_PUBLISHER }}/.env
-        scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ vars.APPLICATION_NAME }}.tar ${{ secrets.SSH_PUBLISHER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_PUBLISHER }}/${{ vars.APPLICATION_NAME }}.tar
+        scp -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ vars.PROCESSOR_NAME }}.tar ${{ secrets.SSH_PUBLISHER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_PUBLISHER }}/${{ vars.PROCESSOR_NAME }}.tar
 
     - name: Load and run image on server
       run: |
         ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no ${{ secrets.SSH_PUBLISHER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          docker load -i /home/${{ secrets.SSH_PUBLISHER }}/${{ vars.APPLICATION_NAME }}.tar
-          docker stop ${{ vars.APPLICATION_NAME }} || true && docker rm ${{ vars.APPLICATION_NAME }} || true
+          docker load -i /home/${{ secrets.SSH_PUBLISHER }}/${{ vars.PROCESSOR_NAME }}.tar
+          docker stop ${{ vars.PROCESSOR_NAME }} || true && docker rm ${{ vars.PROCESSOR_NAME }} || true
           docker run -d -p ${{ vars.SERVER_PORT }}:${{ vars.SERVER_PORT }} \
             --env-file /home/${{ secrets.SSH_PUBLISHER }}/.env \
-            --name ${{ vars.APPLICATION_NAME }} ${{ vars.APPLICATION_NAME }}:latest
+            --name ${{ vars.PROCESSOR_NAME }} ${{ vars.PROCESSOR_NAME }}:latest
         EOF
