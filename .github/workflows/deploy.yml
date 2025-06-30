@@ -1,4 +1,4 @@
-name: Spring Boot Temporary Deploy CI with Gradle
+name: Python Temporary Deploy CI
 
 on: 
   pull_request:
