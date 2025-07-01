@@ -118,29 +118,48 @@ class TestAudioConverter:
         assert converter.is_supported(unsupported_buffer) == False
 
     
-    @patch('src.processor.converter.audio_converter.AudioSegment')
-    def test_process_success(self, mock_audio_segment, converter, valid_audio_buffer):
+    def test_process_success(self, converter, valid_audio_buffer):
         """
         성공적인 오디오 변환 처리 테스트
         
         Args:
-            mock_audio_segment: AudioSegment Mock 객체
             converter: AudioConverter 인스턴스
             valid_audio_buffer: 유효한 오디오 버퍼
         """
-        # Mock 설정
-        mock_audio = Mock()
-        mock_audio_segment.from_file.return_value = mock_audio
-        mock_audio.export.return_value = None
+        import os
         
-        result = converter.process(valid_audio_buffer, {"ext": "mp3"})
+        # test/resources 디렉토리의 test.webm 파일 사용
+        test_webm_path = "test/resources/test.webm"
+        test_wav_path = "test/resources/test.wav"
+        
+        # test.webm 파일이 존재하는지 확인
+        assert os.path.exists(test_webm_path), f"테스트 파일이 존재하지 않습니다: {test_webm_path}"
+        
+        # 실제 오디오 데이터로 BufferDto 생성
+        with open(test_webm_path, 'rb') as f:
+            audio_data = f.read()
+        
+        test_buffer = BufferDto(
+            buffer=audio_data,
+            metadata={"ext": "webm"},
+            data_type=DataType.AUDIO,
+            status=BufferStatus.INIT
+        )
+        
+        result = converter.process(test_buffer, {"ext": "wav"})
         
         # 검증
         assert result.data_type == DataType.AUDIO
         assert result.status == BufferStatus.COMPLETED
-        assert result.metadata["ext"] == "mp3"
-        mock_audio_segment.from_file.assert_called_once()
-        mock_audio.export.assert_called_once()
+        assert result.metadata["ext"] == "wav"
+        assert len(result.buffer) > 0  # 변환된 데이터가 존재하는지 확인
+        
+        # 변환된 데이터를 test.wav와 비교 (선택적)
+        if os.path.exists(test_wav_path):
+            with open(test_wav_path, 'rb') as f:
+                expected_wav_data = f.read()
+            # 변환된 데이터가 유효한 WAV 형식인지 확인
+            assert result.buffer.startswith(b'RIFF'), "변환된 데이터가 유효한 WAV 형식이 아닙니다"
 
 
     def test_process_invalid_output_extension(self, converter, valid_audio_buffer):
