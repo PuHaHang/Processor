@@ -63,7 +63,7 @@ class UrlClassifier (Classifier):
     # 정규표현식 매칭 그룹 순서 정의
     match_sequence = {
         "youtube": {
-            "protocl": 1,      # 프로토콜 그룹
+            "protocol": 1,      # 프로토콜 그룹
             "www": 2,          # www 그룹
             "host": 3,         # 호스트 그룹
             "type": 4,         # URL 타입 그룹
@@ -71,14 +71,14 @@ class UrlClassifier (Classifier):
             "query_string": 6  # 쿼리 스트링 그룹
         },
         "twitter": {
-            "protocl": 1,      # 프로토콜 그룹
+            "protocol": 1,      # 프로토콜 그룹
             "www": 2,          # www 그룹
             "host": 3,         # 호스트 그룹
             "video_id": 4,     # 비디오 ID 그룹
             "query_string": 5  # 쿼리 스트링 그룹
         },
         "unknown": {
-            "protocl": 1,      # 프로토콜 그룹
+            "protocol": 1,      # 프로토콜 그룹
             "www": 2,          # www 그룹
             "host": 3,         # 호스트 그룹
             "query_string": 4  # 쿼리 스트링 그룹
