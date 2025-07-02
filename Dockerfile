@@ -24,7 +24,7 @@ COPY . .
 ENV PYTHONPATH="${PYTHONPATH}:/app/src"
 
 # 포트 설정 (필요에 따라 수정)
-EXPOSE 8000
+EXPOSE ${SERVER_PORT}
 
 # 애플리케이션 실행
 CMD ["python", "server.py"] 
