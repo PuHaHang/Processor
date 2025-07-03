@@ -169,7 +169,7 @@ class TestAudioConverter:
         ("test.mp3", "mp3"),
         # ("test.wav", "wav"), # 용량 문제로 테스트 중단
     ], indirect=["audio_buffer"])
-    @patch('src.processor.converter.audio_converter.AudioSegment')
+    @patch('src.common.processor.converter.audio_converter.AudioSegment')
     @pytest.mark.integration
     def test_process_conversion_failure(self, mock_audio_segment, converter, audio_buffer):
         """
