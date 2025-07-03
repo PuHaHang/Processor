@@ -9,6 +9,7 @@ from typing import Tuple
 
 from pydub import AudioSegment
 
+from src.processor.common import audio_info
 from src.processor.converter.converter import Converter
 from src.processor.data_structure.buffer_dto import BufferDto
 from src.processor.data_structure.buffer_status import BufferStatus
@@ -33,6 +34,7 @@ class AudioConverter (Converter):
     available_output_ext: list[str] = ["mp3", "webm", "m4a", "ogg", "wav", "flac"]
     default_output_ext: str = "mp3"
 
+
     def process(self, buffer_dto: BufferDto, opt: dict = {}) -> BufferDto:
         """
         오디오 데이터를 지정된 형식으로 변환합니다.
@@ -48,12 +50,13 @@ class AudioConverter (Converter):
             ValueError: 유효하지 않은 출력 확장자인 경우
         """
         # 입력 확장자와 출력 확장자 추출
-        src_ext = self._extract_audio_extension(buffer_dto.metadata)
+        src_ext = audio_info.get_audio_format(buffer_dto.buffer)
         dest_ext = opt.get("ext", "")
 
         # 출력 확장자 유효성 검사
-        if dest_ext not in self.available_output_ext:
-            raise ValueError(f"Invalid output extension: {dest_ext}")
+        if src_ext not in self.available_input_ext or \
+            dest_ext not in self.available_output_ext:
+            raise ValueError(f"Invalid input or output extension: {src_ext} or {dest_ext}")
 
         return BufferDto(
             buffer=self._convert_audio(buffer_dto.buffer, opt={
@@ -77,7 +80,7 @@ class AudioConverter (Converter):
             bool: AUDIO 타입이고 지원하는 입력 확장자인 경우 True
         """
         return self.data_flow[0] == buffer_dto.data_type and \
-            buffer_dto.metadata.get("ext", "") in self.available_input_ext
+            audio_info.get_audio_extension(buffer_dto.buffer) in self.available_input_ext
 
 
     def _convert_audio(self, src_audio: bytes, opt: dict = {}) -> bytes:
@@ -95,29 +98,16 @@ class AudioConverter (Converter):
             ValueError: 필수 매개변수가 누락된 경우
         """
         # 필수 매개변수 검사
-        if not (src_ext := opt.get("src_ext", "")) or \
-            not (dest_ext := opt.get("dest_ext", "")):
-            raise ValueError("src_ext and dest_ext are required")
+        if not (src_ext := opt.get("src_ext", "")) in self.available_input_ext or \
+            not (dest_ext := opt.get("dest_ext", "")) in self.available_output_ext:
+            raise ValueError(f"Invalid input or output extension: {src_ext} or {dest_ext}")
 
         # 소스 바이너리 데이터를 AudioSegment로 로드
         src_buffer = io.BytesIO(src_audio)
 
-        src_buffer = AudioSegment.from_file(src_buffer, format=src_ext)
+        src_buffer = AudioSegment.from_file(src_buffer, format=audio_info.get_audio_extension(src_audio))
         
         # 변환된 데이터를 바이너리로 내보내기
         dest_buffer = io.BytesIO()
         src_buffer.export(dest_buffer, format=dest_ext)
         return dest_buffer.getvalue()
-
-
-    def _extract_audio_extension(self, metadata: dict) -> str:
-        """
-        메타데이터에서 오디오 확장자를 추출합니다.
-        
-        Args:
-            metadata (dict): 메타데이터 딕셔너리
-        
-        Returns:
-            str: 추출된 확장자 문자열, 없으면 빈 문자열
-        """
-        return metadata.get("ext", "")
