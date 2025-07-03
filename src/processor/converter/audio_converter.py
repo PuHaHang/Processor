@@ -50,8 +50,8 @@ class AudioConverter (Converter):
             ValueError: 유효하지 않은 출력 확장자인 경우
         """
         # 입력 확장자와 출력 확장자 추출
-        src_ext = audio_info.get_audio_format(buffer_dto.buffer)
-        dest_ext = opt.get("ext", "")
+        src_ext = audio_info.get_audio_extension(buffer_dto.buffer)
+        dest_ext = opt.get("ext", self.default_output_ext)
 
         # 출력 확장자 유효성 검사
         if src_ext not in self.available_input_ext or \
@@ -79,8 +79,11 @@ class AudioConverter (Converter):
         Returns:
             bool: AUDIO 타입이고 지원하는 입력 확장자인 경우 True
         """
-        return self.data_flow[0] == buffer_dto.data_type and \
-            audio_info.get_audio_extension(buffer_dto.buffer) in self.available_input_ext
+        try:
+            return self.data_flow[0] == buffer_dto.data_type and \
+                audio_info.get_audio_extension(buffer_dto.buffer) in self.available_input_ext
+        except Exception:
+            return False
 
 
     def _convert_audio(self, src_audio: bytes, opt: dict = {}) -> bytes:
@@ -98,8 +101,10 @@ class AudioConverter (Converter):
             ValueError: 필수 매개변수가 누락된 경우
         """
         # 필수 매개변수 검사
-        if not (src_ext := opt.get("src_ext", "")) in self.available_input_ext or \
-            not (dest_ext := opt.get("dest_ext", "")) in self.available_output_ext:
+        src_ext = opt.get("src_ext", "")
+        dest_ext = opt.get("dest_ext", "")
+        if src_ext not in self.available_input_ext or \
+            dest_ext not in self.available_output_ext:
             raise ValueError(f"Invalid input or output extension: {src_ext} or {dest_ext}")
 
         # 소스 바이너리 데이터를 AudioSegment로 로드
