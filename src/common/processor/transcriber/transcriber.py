@@ -8,9 +8,9 @@ from abc import ABC
 from collections.abc import Generator
 import io
 
-from src.processor.common import audio_info
-from src.processor.processor import Processor
-from src.processor.processor_type import ProcessorType
+from src.common.processor.common import audio_info
+from src.common.processor.processor import Processor
+from src.common.processor.processor_type import ProcessorType
 
 class Transcriber (Processor, ABC):
     """

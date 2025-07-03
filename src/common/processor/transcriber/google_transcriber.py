@@ -10,11 +10,11 @@ from typing import Tuple
 
 import speech_recognition as sr
 
-from src.processor.common import audio_info
-from src.processor.data_type import DataType
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.data_structure.buffer_status import BufferStatus
-from src.processor.transcriber.transcriber import Transcriber
+from src.common.processor.common import audio_info
+from src.common.processor.data_type import DataType
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.transcriber.transcriber import Transcriber
 
 
 # TODO: Google Transcriber API 키 설정 필요

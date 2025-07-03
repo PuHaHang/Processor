@@ -8,10 +8,10 @@ URL 분류기 모듈
 import re
 from typing import Dict, Tuple
 
-from src.processor.classifier.classifier import Classifier
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.data_structure.buffer_status import BufferStatus
-from src.processor.data_type import DataType
+from src.common.processor.classifier.classifier import Classifier
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.data_type import DataType
 
 class UrlClassifier (Classifier):
     """

@@ -10,11 +10,11 @@ import pytest
 from unittest.mock import MagicMock, Mock, patch
 import io
 
-from src.processor.converter.audio_converter import AudioConverter
-from src.processor.data_type import DataType
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.data_structure.buffer_status import BufferStatus
-from src.processor.processor_type import ProcessorType
+from src.common.processor.converter.audio_converter import AudioConverter
+from src.common.processor.data_type import DataType
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.processor_type import ProcessorType
 
 
 class TestAudioConverter:

@@ -12,7 +12,7 @@ import tempfile
 from unittest.mock import Mock, patch, MagicMock
 import subprocess
 
-from src.processor.common import audio_info
+from src.common.processor.common import audio_info
 
 
 class TestAudioInfo:

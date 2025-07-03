@@ -12,11 +12,11 @@ from typing import Tuple
 
 from openai import OpenAI
 
-from src.processor.common import audio_info, srt_parser
-from src.processor.data_structure.buffer_status import BufferStatus
-from src.processor.data_type import DataType
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.transcriber.transcriber import Transcriber
+from src.common.processor.common import audio_info, srt_parser
+from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.data_type import DataType
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.transcriber.transcriber import Transcriber
 
 
 class OpenAITranscriber(Transcriber):

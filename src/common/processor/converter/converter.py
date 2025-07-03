@@ -6,8 +6,8 @@
 
 from abc import ABC
 
-from src.processor.processor import Processor
-from src.processor.processor_type import ProcessorType
+from src.common.processor.processor import Processor
+from src.common.processor.processor_type import ProcessorType
 
 
 class Converter (Processor, ABC):

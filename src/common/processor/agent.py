@@ -5,14 +5,14 @@
 URL에서 오디오를 다운로드하고, 필요시 형식을 변환한 후, STT를 통해 텍스트로 변환하는 전체 워크플로우를 관리합니다.
 """
 
-from src.processor.classifier.url_classifier import UrlClassifier
-from src.processor.converter.audio_converter import AudioConverter
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.data_structure.buffer_status import BufferStatus
-from src.processor.downloader.yt_dlp_downloader import YtDlpDownloader
-from src.processor.processor import Processor
-from src.processor.processor_type import ProcessorType
-from src.processor.transcriber.openai_transcriber import OpenAITranscriber
+from src.common.processor.classifier.url_classifier import UrlClassifier
+from src.common.processor.converter.audio_converter import AudioConverter
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.downloader.yt_dlp_downloader import YtDlpDownloader
+from src.common.processor.processor import Processor
+from src.common.processor.processor_type import ProcessorType
+from src.common.processor.transcriber.openai_transcriber import OpenAITranscriber
 
 
 class Agent:

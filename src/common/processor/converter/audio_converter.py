@@ -9,11 +9,11 @@ from typing import Tuple
 
 from pydub import AudioSegment
 
-from src.processor.common import audio_info
-from src.processor.converter.converter import Converter
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.data_structure.buffer_status import BufferStatus
-from src.processor.data_type import DataType
+from src.common.processor.common import audio_info
+from src.common.processor.converter.converter import Converter
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.data_type import DataType
 
 
 class AudioConverter (Converter):

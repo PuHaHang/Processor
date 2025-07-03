@@ -7,9 +7,9 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.data_type import DataType
-from src.processor.processor_type import ProcessorType
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.data_type import DataType
+from src.common.processor.processor_type import ProcessorType
 
 
 class Processor (ABC):

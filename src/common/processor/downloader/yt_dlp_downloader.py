@@ -10,16 +10,16 @@ import re
 import os, sys
 from typing import Tuple
 
-from src.processor.data_type import DataType
-from src.processor.downloader.downloader import Downloader
+from src.common.processor.data_type import DataType
+from src.common.processor.downloader.downloader import Downloader
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import requests
 from yt_dlp import YoutubeDL
 
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.data_structure.buffer_status import BufferStatus
 
 
 class YtDlpDownloader (Downloader):
