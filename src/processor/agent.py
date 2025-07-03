@@ -11,6 +11,7 @@ from src.processor.data_structure.buffer_status import BufferStatus
 from src.processor.downloader.yt_dlp_downloader import YtDlpDownloader
 from src.processor.processor import Processor
 from src.processor.processor_type import ProcessorType
+from src.processor.transcriber.openai_transcriber import OpenAITranscriber
 
 
 class Agent:
@@ -47,16 +48,20 @@ class Agent:
 
         # 각 프로세서를 순차적으로 실행
         for processor in pipeline:
+            if not buffer_dto:
+                raise ValueError("BufferDto is None")
             # 최대 재시도 횟수만큼 시도
             for _ in range(self.max_retry):
                 if processor.is_supported(buffer_dto):
                     try:
-                        buffer_dto = processor.process(buffer_dto, opt={"ext": "wav"})
+                        print(f"{processor.get_processor_type()} processing")
+                        buffer_dto = processor.process(buffer_dto)
                         metadatas.append(buffer_dto.metadata)
                     except Exception as e:
                         # 마지막 시도가 아니면 재시도
                         if _ == self.max_retry - 1:
                             raise e
+                        print(f"Processor {processor.get_processor_type()} failed to process {buffer_dto.get_data_type()}")
                         continue
                     break
                 else:
@@ -88,5 +93,6 @@ class Agent:
         return [
             UrlClassifier(),       # URL 분류
             YtDlpDownloader(),     # 오디오 다운로드
-            AudioConverter(),      # 오디오 형식 변환
+            # AudioConverter(),      # 오디오 형식 변환
+            OpenAITranscriber(),   # 오디오 전사
         ]
