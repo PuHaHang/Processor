@@ -6,11 +6,11 @@ OpenAI Whisper 전사기 모듈
 대용량 오디오 파일을 청킹하여 처리하고, SRT 형식의 자막을 생성합니다.
 """
 
+from collections.abc import Generator
 import io
 from typing import Tuple
 
 from openai import OpenAI
-from pydub import AudioSegment
 
 from src.processor.common import audio_info, srt_parser
 from src.processor.data_structure.buffer_status import BufferStatus
@@ -130,7 +130,12 @@ class OpenAITranscriber(Transcriber):
             transcripts = []
 
             # 각 청크에 대해 Whisper API 호출
-            for idx, (chunk, time_offset) in enumerate(chunks):
+            idx = 0
+            while True:
+                chunk, time_offset = next(chunks)
+                if chunk is None:
+                    break
+                
                 try:
                     # Whisper API 호출
                     response = client.audio.transcriptions.create(
@@ -144,6 +149,7 @@ class OpenAITranscriber(Transcriber):
                 except Exception as e:
                     # 개별 청크 처리 실패 시 예외 발생
                     raise e
+                idx += 1
             
             # 모든 청크의 SRT 결과를 병합
             return srt_parser.merge_srt_chunks(
@@ -158,7 +164,7 @@ class OpenAITranscriber(Transcriber):
             raise Exception(f"OpenAI Whisper transcription failed: {str(e)}")
 
 
-    def _create_audio_stream(self, audio: bytes) -> list[tuple[io.BytesIO, float]]:
+    def _create_audio_stream(self, audio: bytes) -> Generator[tuple[io.BytesIO|None, float], None, None]:
         """
         오디오 데이터를 청크로 분할하여 스트림 목록을 생성합니다.
         
@@ -174,29 +180,24 @@ class OpenAITranscriber(Transcriber):
         # 오디오 포맷 감지
         ext = audio_info.get_audio_extension(audio)
         
-        # AudioSegment로 오디오 로드
-        audio_segment = AudioSegment.from_file(io.BytesIO(audio), format=ext)
-        
-        chunks = []
-        time_offset = 0.0
-        
         # 최대 청크 크기에 따라 오디오 분할
-        for i in range(0, len(audio_segment), self.max_bytes_per_chunk):
+        time_offset = 0.0
+        audio_stream = io.BytesIO(audio)
+        while audio_stream.tell() < len(audio):
             # 청크 추출
-            chunk = audio_segment[i:i + self.max_bytes_per_chunk]
+            chunk_data = audio_stream.read(self.max_bytes_per_chunk)
 
             # 청크를 바이너리 버퍼로 변환
-            buffer = io.BytesIO()
-            chunk.export(buffer, format=ext)
+            buffer = io.BytesIO(chunk_data)
             buffer.seek(0)
-            buffer.name = f"chunk_{i}.{ext}"  # API 요청 시 파일명 설정
-            
+            buffer.name = f"chunk_{audio_stream.tell()}.{ext}"
+
             # 청크와 시간 오프셋 저장
-            chunks.append((buffer, time_offset))
+            yield buffer, time_offset
 
             # 다음 청크의 시간 오프셋 계산
             time_offset += audio_info.get_audio_duration(buffer.getvalue())
-            print(f"Chunk {i//self.max_bytes_per_chunk + 1} created, time offset: {time_offset:.2f}s")
-            
-        return chunks
+            print(f"Chunk {audio_stream.tell()//self.max_bytes_per_chunk + 1} created, time offset: {time_offset:.2f}s")
+
+        yield None, time_offset
     
