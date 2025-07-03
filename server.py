@@ -17,12 +17,6 @@ import sys
 # - 실시간 스트리밍 처리 엔드포인트
 # - WebSocket을 통한 실시간 결과 전송
 
-# TODO: 웹 서버 구현 영역
-# - FastAPI 또는 Flask를 사용한 REST API 서버
-# - 실시간 스트리밍 처리 엔드포인트
-# - WebSocket을 통한 실시간 결과 전송
-
-
 app = FastAPI()
 
 
