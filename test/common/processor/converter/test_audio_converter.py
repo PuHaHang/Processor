@@ -50,7 +50,7 @@ class TestAudioConverter:
         """
         src, ext = request.param
         return BufferDto(
-            buffer=open(f"test/resources/{src}", "rb").read(),
+            buffer=open(f"test/resources/mockdata/{src}", "rb").read(),
             metadata={"ext": ext},
             data_type=DataType.AUDIO,
             status=BufferStatus.INIT

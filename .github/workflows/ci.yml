@@ -52,7 +52,7 @@ jobs:
 
       - name: Sync test resources
         run: |
-          aws s3 sync s3://${{ secrets.AWS_S3_BUCKET_NAME }}/test_resources/ test/resources/
+          aws s3 sync s3://${{ secrets.AWS_S3_BUCKET_NAME }}/test_resources/ test/resources/mockdata/
 
       - name: Install dependencies
         run: |

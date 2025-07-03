@@ -80,7 +80,7 @@ class TestAudioInfo:
         MP3 형식 감지 테스트
         """
         # MP3 시그니처 (ID3v2)
-        with open(f"test/resources/{target}", "rb") as f:
+        with open(f"test/resources/mockdata/{target}", "rb") as f:
             data = f.read()
         format_name = audio_info.get_audio_format(data)
         assert format_name == expected
@@ -123,7 +123,7 @@ class TestAudioInfo:
         """
         MP3 확장자 추출 테스트
         """
-        with open(f"test/resources/{target}", "rb") as f:
+        with open(f"test/resources/mockdata/{target}", "rb") as f:
             data = f.read()
         extension = audio_info.get_audio_extension(data)
         assert extension == expected
@@ -176,7 +176,7 @@ class TestAudioInfo:
         Args:
             temp_audio_file: 임시 오디오 파일 경로
         """
-        with open(f"test/resources/{target}", "rb") as f:
+        with open(f"test/resources/mockdata/{target}", "rb") as f:
             data = f.read()
         duration = audio_info.get_audio_duration(data)
         assert duration == expected
