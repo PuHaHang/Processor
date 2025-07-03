@@ -8,11 +8,11 @@ Mock을 사용하여 실제 네트워크 요청 없이도 테스트가 가능하
 import pytest
 from unittest.mock import MagicMock, Mock, patch
 
-from src.processor.downloader.yt_dlp_downloader import YtDlpDownloader
-from src.processor.data_type import DataType
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.data_structure.buffer_status import BufferStatus
-from src.processor.processor_type import ProcessorType
+from src.common.processor.downloader.yt_dlp_downloader import YtDlpDownloader
+from src.common.processor.data_type import DataType
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.processor_type import ProcessorType
 
 
 class TestYtDlpDownloader:
@@ -125,7 +125,7 @@ class TestYtDlpDownloader:
         # assert mock_yt_dlp.YoutubeDL.called
 
     
-    @patch('src.processor.downloader.yt_dlp_downloader.YoutubeDL')
+    @patch('src.common.processor.downloader.yt_dlp_downloader.YoutubeDL')
     def test_process_download_failure(self, mock_youtube_dl, downloader, valid_url_buffer):
         """
         다운로드 실패 시 예외 처리 테스트

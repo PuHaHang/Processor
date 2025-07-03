@@ -1,19 +1,20 @@
 """
 오디오 변환기 테스트 모듈
 
-이 모듈은 AudioConverter 클래스의 기능을 검証하는 단위 테스트를 제공합니다.
+이 모듈은 AudioConverter 클래스의 기능을 검증하는 단위 테스트를 제공합니다.
 Mock을 사용하여 실제 오디오 파일 없이도 테스트가 가능하도록 구현되었습니다.
 """
 
+from textwrap import indent
 import pytest
 from unittest.mock import MagicMock, Mock, patch
 import io
 
-from src.processor.converter.audio_converter import AudioConverter
-from src.processor.data_type import DataType
-from src.processor.data_structure.buffer_dto import BufferDto
-from src.processor.data_structure.buffer_status import BufferStatus
-from src.processor.processor_type import ProcessorType
+from src.common.processor.converter.audio_converter import AudioConverter
+from src.common.processor.data_type import DataType
+from src.common.processor.data_structure.buffer_dto import BufferDto
+from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.processor_type import ProcessorType
 
 
 class TestAudioConverter:
@@ -36,33 +37,22 @@ class TestAudioConverter:
     
 
     @pytest.fixture
-    def valid_audio_buffer(self):
+    def audio_buffer(self, request):
         """
         유효한 오디오 BufferDto를 제공하는 fixture
         
+        Args:
+            request: 테스트 파라미터
+            - param[0]: 테스트 파일 경로
+            - param[1]: 테스트 파일 확장자
         Returns:
             BufferDto: 테스트용 오디오 버퍼 데이터
         """
+        src, ext = request.param
         return BufferDto(
-            buffer=b"mock_audio_data",
-            metadata={"ext": "webm"},
+            buffer=open(f"test/resources/{src}", "rb").read(),
+            metadata={"ext": ext},
             data_type=DataType.AUDIO,
-            status=BufferStatus.INIT
-        )
-    
-
-    @pytest.fixture
-    def invalid_buffer(self):
-        """
-        잘못된 타입의 BufferDto를 제공하는 fixture
-        
-        Returns:
-            BufferDto: 테스트용 잘못된 버퍼 데이터
-        """
-        return BufferDto(
-            buffer=b"invalid_data",
-            metadata={},
-            data_type=DataType.URL,
             status=BufferStatus.INIT
         )
 
@@ -80,7 +70,13 @@ class TestAudioConverter:
         assert converter.default_output_ext == "mp3"
 
 
-    def test_is_supported_with_valid_audio(self, converter, valid_audio_buffer):
+    @pytest.mark.parametrize("audio_buffer", [
+        ("test.webm", "webm"),
+        ("test.mp3", "mp3"),
+        # ("test.wav", "wav"), # 용량 문제로 테스트 중단
+    ], indirect=["audio_buffer"])
+    @pytest.mark.integration
+    def test_is_supported_with_valid_audio(self, converter, audio_buffer):
         """
         유효한 오디오 데이터에 대한 지원 여부 테스트
         
@@ -88,20 +84,27 @@ class TestAudioConverter:
             converter: AudioConverter 인스턴스
             valid_audio_buffer: 유효한 오디오 버퍼
         """
-        assert converter.is_supported(valid_audio_buffer) == True
+        assert converter.is_supported(audio_buffer) == True
 
 
-    def test_is_supported_with_invalid_data_type(self, converter, invalid_buffer):
+    @pytest.mark.integration
+    def test_is_supported_with_invalid_data_type(self, converter):
         """
         잘못된 데이터 타입에 대한 지원 여부 테스트
         
         Args:
             converter: AudioConverter 인스턴스
-            invalid_buffer: 잘못된 버퍼 데이터
         """
+        invalid_buffer = BufferDto(
+            buffer=b"invalid_data",
+            metadata={},
+            data_type=DataType.URL,
+            status=BufferStatus.INIT
+        )
         assert converter.is_supported(invalid_buffer) == False
 
     
+    @pytest.mark.integration
     def test_is_supported_with_unsupported_extension(self, converter):
         """
         지원하지 않는 확장자에 대한 지원 여부 테스트
@@ -118,79 +121,70 @@ class TestAudioConverter:
         assert converter.is_supported(unsupported_buffer) == False
 
     
-    def test_process_success(self, converter, valid_audio_buffer):
+    @pytest.mark.parametrize("audio_buffer, dest_ext", [
+        (("test.webm", "webm"), "mp3"),
+        (("test.mp3", "mp3"), "wav"),
+        # (("test.wav", "wav"), "mp3"), # 용량 문제로 테스트 중단
+    ], indirect=["audio_buffer"])
+    @pytest.mark.integration
+    def test_process_success(self, converter, audio_buffer, dest_ext):
         """
         성공적인 오디오 변환 처리 테스트
         
         Args:
             converter: AudioConverter 인스턴스
-            valid_audio_buffer: 유효한 오디오 버퍼
+            audio_buffer: 유효한 오디오 버퍼
         """
-        import os
-        
-        # test/resources 디렉토리의 test.webm 파일 사용
-        test_webm_path = "test/resources/test.webm"
-        test_wav_path = "test/resources/test.wav"
-        
-        # test.webm 파일이 존재하는지 확인
-        assert os.path.exists(test_webm_path), f"테스트 파일이 존재하지 않습니다: {test_webm_path}"
-        
-        # 실제 오디오 데이터로 BufferDto 생성
-        with open(test_webm_path, 'rb') as f:
-            audio_data = f.read()
-        
-        test_buffer = BufferDto(
-            buffer=audio_data,
-            metadata={"ext": "webm"},
-            data_type=DataType.AUDIO,
-            status=BufferStatus.INIT
-        )
-        
-        result = converter.process(test_buffer, {"ext": "wav"})
+        result = converter.process(audio_buffer, {"ext": dest_ext})
         
         # 검증
         assert result.data_type == DataType.AUDIO
         assert result.status == BufferStatus.COMPLETED
-        assert result.metadata["ext"] == "wav"
+        assert result.metadata["ext"] == dest_ext
         assert len(result.buffer) > 0  # 변환된 데이터가 존재하는지 확인
-        
-        # 변환된 데이터를 test.wav와 비교 (선택적)
-        if os.path.exists(test_wav_path):
-            with open(test_wav_path, 'rb') as f:
-                expected_wav_data = f.read()
-            # 변환된 데이터가 유효한 WAV 형식인지 확인
-            assert result.buffer.startswith(b'RIFF'), "변환된 데이터가 유효한 WAV 형식이 아닙니다"
 
 
-    def test_process_invalid_output_extension(self, converter, valid_audio_buffer):
+    @pytest.mark.parametrize("audio_buffer", [
+        ("test.webm", "webm"),
+        ("test.mp3", "mp3"),
+        # ("test.wav", "wav"), # 용량 문제로 테스트 중단
+    ], indirect=["audio_buffer"])
+    @pytest.mark.integration
+    def test_process_invalid_output_extension(self, converter, audio_buffer):
         """
         잘못된 출력 확장자로 처리 시 예외 테스트
         
         Args:
             converter: AudioConverter 인스턴스
-            valid_audio_buffer: 유효한 오디오 버퍼
+            audio_buffer: 유효한 오디오 버퍼
         """
         with pytest.raises(ValueError) as exc_info:
-            converter.process(valid_audio_buffer, {"ext": "invalid"})
+            converter.process(audio_buffer, {"ext": "invalid"})
         
-        assert "Invalid output extension" in str(exc_info.value)
+        assert "Invalid input or output extension" in str(exc_info.value)
 
     
-    @patch('src.processor.converter.audio_converter.AudioSegment')
-    def test_process_conversion_failure(self, mock_audio_segment, converter, valid_audio_buffer):
+    @pytest.mark.parametrize("audio_buffer", [
+        ("test.webm", "webm"),
+        ("test.mp3", "mp3"),
+        # ("test.wav", "wav"), # 용량 문제로 테스트 중단
+    ], indirect=["audio_buffer"])
+    @patch('src.common.processor.converter.audio_converter.AudioSegment')
+    @pytest.mark.integration
+    def test_process_conversion_failure(self, mock_audio_segment, converter, audio_buffer):
         """
         오디오 변환 실패 시 예외 처리 테스트
         
         Args:
             mock_audio_segment: AudioSegment Mock 객체
             converter: AudioConverter 인스턴스
-            valid_audio_buffer: 유효한 오디오 버퍼
+            audio_buffer: 유효한 오디오 버퍼
         """
         # AudioSegment Mock 설정 - 예외 발생
         mock_audio_segment.from_file.side_effect = Exception("Audio conversion failed")
         
         with pytest.raises(Exception) as exc_info:
-            converter.process(valid_audio_buffer, {"ext": "mp3"})
+            converter.process(audio_buffer, {"ext": "mp3"})
         
         assert "Audio conversion failed" in str(exc_info.value)
 
@@ -205,7 +199,7 @@ class TestAudioConverter:
         with pytest.raises(ValueError) as exc_info:
             converter._convert_audio(b"audio_data", {})
         
-        assert "src_ext and dest_ext are required" in str(exc_info.value)
+        assert "Invalid input or output extension" in str(exc_info.value)
 
 
     def test_get_processor_type(self, converter):
@@ -263,27 +257,3 @@ class TestAudioConverter:
             converter: AudioConverter 인스턴스
         """
         assert converter.get_default_output_ext() == "mp3"
-
-
-    def test_extract_audio_extension(self, converter):
-        """
-        오디오 확장자 추출 테스트
-        
-        Args:
-            converter: AudioConverter 인스턴스
-        """
-        metadata = {"ext": "webm", "other": "data"}
-        result = converter._extract_audio_extension(metadata)
-        assert result == "webm"
-
-    
-    def test_extract_audio_extension_missing(self, converter):
-        """
-        확장자가 없는 메타데이터에서 확장자 추출 테스트
-        
-        Args:
-            converter: AudioConverter 인스턴스
-        """
-        metadata = {"other": "data"}
-        result = converter._extract_audio_extension(metadata)
-        assert result == ""

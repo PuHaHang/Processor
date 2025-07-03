@@ -7,7 +7,7 @@
 
 from pydantic import BaseModel
 
-from src.processor.data_type import DataType
+from src.common.processor.data_type import DataType
 
 from .buffer_status import BufferStatus
 
