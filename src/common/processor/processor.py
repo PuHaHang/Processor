@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 from src.common.processor.data_structure.buffer_dto import BufferDto
-from src.common.processor.data_type import DataType
+from src.common.types.data_type import DataType
 from src.common.processor.processor_type import ProcessorType
 
 
@@ -31,6 +31,7 @@ class Processor (ABC):
     available_input_ext: list[str]
     available_output_ext: list[str]
     default_output_ext: str
+    next_processor: 'Processor'
 
     @abstractmethod
     def process(self, buffer_dto: BufferDto, opt: dict = {}) -> BufferDto:
@@ -59,6 +60,17 @@ class Processor (ABC):
             bool: 지원 여부
         """
         pass
+
+
+    def set_next_processor(self, processor: 'Processor') -> 'Processor':
+        """
+        다음 프로세서를 설정합니다.
+        
+        Args:
+            processor (Processor): 설정할 다음 프로세서
+        """
+        self.next_processor = processor
+        return processor
 
 
     def get_data_flow(self) -> Tuple[DataType, DataType]:
