@@ -10,7 +10,7 @@ import re
 import os, sys
 from typing import Tuple
 
-from src.common.processor.data_type import DataType
+from ..types import DataType
 from src.common.processor.downloader.downloader import Downloader
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

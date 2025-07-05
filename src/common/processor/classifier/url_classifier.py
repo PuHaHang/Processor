@@ -11,7 +11,7 @@ from typing import Dict, Tuple
 from src.common.processor.classifier.classifier import Classifier
 from src.common.processor.data_structure.buffer_dto import BufferDto
 from src.common.processor.data_structure.buffer_status import BufferStatus
-from src.common.processor.data_type import DataType
+from ..types import DataType
 
 class UrlClassifier (Classifier):
     """

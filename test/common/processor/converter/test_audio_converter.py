@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, Mock, patch
 import io
 
 from src.common.processor.converter.audio_converter import AudioConverter
-from src.common.processor.data_type import DataType
+from src.common.processor.types import DataType
 from src.common.processor.data_structure.buffer_dto import BufferDto
 from src.common.processor.data_structure.buffer_status import BufferStatus
 from src.common.processor.processor_type import ProcessorType

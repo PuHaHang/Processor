@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import MagicMock, Mock, patch
 
 from src.common.processor.downloader.yt_dlp_downloader import YtDlpDownloader
-from src.common.processor.data_type import DataType
+from src.common.processor.types import DataType
 from src.common.processor.data_structure.buffer_dto import BufferDto
 from src.common.processor.data_structure.buffer_status import BufferStatus
 from src.common.processor.processor_type import ProcessorType

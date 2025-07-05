@@ -14,7 +14,7 @@ from openai import OpenAI
 
 from src.common.processor.common import audio_info, srt_parser
 from src.common.processor.data_structure.buffer_status import BufferStatus
-from src.common.processor.data_type import DataType
+from ..types import DataType
 from src.common.processor.data_structure.buffer_dto import BufferDto
 from src.common.processor.transcriber.transcriber import Transcriber
 
