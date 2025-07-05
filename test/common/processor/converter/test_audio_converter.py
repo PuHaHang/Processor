@@ -10,7 +10,7 @@ import pytest
 from unittest.mock import MagicMock, Mock, patch
 import io
 
-from src.common.processor.converter.audio_converter import AudioConverter
+from src.common.processor.converter.strategies import AudioConverter
 from src.common.processor.types import DataType
 from src.common.processor.data_structure.buffer_dto import BufferDto
 from src.common.processor.data_structure.buffer_status import BufferStatus
@@ -169,7 +169,7 @@ class TestAudioConverter:
         ("test.mp3", "mp3"),
         # ("test.wav", "wav"), # 용량 문제로 테스트 중단
     ], indirect=["audio_buffer"])
-    @patch('src.common.processor.converter.audio_converter.AudioSegment')
+    @patch('src.common.processor.converter.strategies.audio_converter.AudioSegment')
     @pytest.mark.integration
     def test_process_conversion_failure(self, mock_audio_segment, converter, audio_buffer):
         """

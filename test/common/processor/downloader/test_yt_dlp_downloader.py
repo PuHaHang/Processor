@@ -8,11 +8,11 @@ Mock을 사용하여 실제 네트워크 요청 없이도 테스트가 가능하
 import pytest
 from unittest.mock import MagicMock, Mock, patch
 
-from src.common.processor.downloader.yt_dlp_downloader import YtDlpDownloader
+from src.common.processor.downloader.strategies import YtDlpDownloader
 from src.common.processor.types import DataType
 from src.common.processor.data_structure.buffer_dto import BufferDto
 from src.common.processor.data_structure.buffer_status import BufferStatus
-from src.common.processor.processor_type import ProcessorType
+from src.common.processor.processor_type import ProcessorType 
 
 
 class TestYtDlpDownloader:
@@ -125,7 +125,7 @@ class TestYtDlpDownloader:
         # assert mock_yt_dlp.YoutubeDL.called
 
     
-    @patch('src.common.processor.downloader.yt_dlp_downloader.YoutubeDL')
+    @patch('src.common.processor.downloader.strategies.yt_dlp_downloader.YoutubeDL')
     def test_process_download_failure(self, mock_youtube_dl, downloader, valid_url_buffer):
         """
         다운로드 실패 시 예외 처리 테스트
@@ -141,12 +141,12 @@ class TestYtDlpDownloader:
         mock_youtube_dl.return_value.__exit__.return_value = None
         
         # extract_info에서 예외 발생하도록 설정
-        mock_ydl_instance.extract_info.side_effect = Exception("yt-dlp extraction failed")
+        mock_ydl_instance.extract_info.side_effect = Exception("Invalid YouTube URL")
         
         with pytest.raises(Exception) as exc_info:
             downloader.process(valid_url_buffer)
         
-        assert "yt-dlp extraction failed" in str(exc_info.value)
+        assert "Invalid YouTube URL" in str(exc_info.value)
 
 
     # 주석 처리된 테스트 메소드 - 현재 구현에서는 지원되지 않는 버퍼 처리 테스트
