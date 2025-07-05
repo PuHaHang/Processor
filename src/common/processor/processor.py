@@ -7,9 +7,9 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
-from src.common.processor.data_structure.buffer_dto import BufferDto
-from src.common.types.data_type import DataType
-from src.common.processor.processor_type import ProcessorType
+from .data_structure.buffer_dto import BufferDto
+from .types import DataType
+from .processor_type import ProcessorType
 
 
 class Processor (ABC):
@@ -45,7 +45,7 @@ class Processor (ABC):
         Returns:
             BufferDto: 처리된 버퍼 데이터
         """
-        pass
+        ...
 
 
     @abstractmethod
@@ -59,7 +59,7 @@ class Processor (ABC):
         Returns:
             bool: 지원 여부
         """
-        pass
+        ...
 
 
     def set_next_processor(self, processor: 'Processor') -> 'Processor':
