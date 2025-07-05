@@ -1,24 +1,26 @@
-"""
-다운로더 기본 클래스 모듈
-
-이 모듈은 URL에서 미디어 파일을 다운로드하는 모든 다운로더가 상속받는 추상 기본 클래스를 정의합니다.
-"""
-
-from abc import ABC
-
-from src.common.processor.processor import Processor
-from src.common.processor.processor_type import ProcessorType
+from ..data_structure.buffer_dto import BufferDto
+from .strategies import YtDlpDownloader
+from ..processor import Processor
+from .downloader_strategy import DownloaderStrategy
+from ..processor_type import ProcessorType
 
 
-class Downloader (Processor, ABC):
-    """
-    미디어 다운로드를 수행하는 프로세서의 기본 추상 클래스
-    
-    URL에서 비디오, 오디오 등의 미디어 파일을 다운로드하는
-    프로세서들이 상속받는 기본 클래스입니다.
-    
-    Attributes:
-        processor_type (ProcessorType): 다운로더 타입으로 고정
-    """
+class Downloader (Processor):
     processor_type: ProcessorType = ProcessorType.DOWNLOADER
+    strategies: list[DownloaderStrategy] = [
+        YtDlpDownloader(),
+    ]
 
+
+    def process(self, buffer_dto: BufferDto, opt: dict = {}) -> BufferDto:
+        strategy = self._get_context(buffer_dto)
+        return strategy.process(buffer_dto, opt)
+
+    def is_supported(self, buffer_dto: BufferDto) -> bool:
+        return self._get_context(buffer_dto).is_supported(buffer_dto)
+
+    def _get_context(self, buffer_dto: BufferDto) -> DownloaderStrategy:
+        for strategy in self.strategies:
+            if strategy.is_supported(buffer_dto):
+                return strategy
+        raise ValueError(f"No supported downloader found for buffer_dto: {buffer_dto}")

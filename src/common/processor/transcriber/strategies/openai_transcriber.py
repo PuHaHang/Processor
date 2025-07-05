@@ -6,20 +6,18 @@ OpenAI Whisper 전사기 모듈
 대용량 오디오 파일을 청킹하여 처리하고, SRT 형식의 자막을 생성합니다.
 """
 
-from collections.abc import Generator
-import io
 from typing import Tuple
 
 from openai import OpenAI
 
-from src.common.processor.common import audio_info, srt_parser
-from src.common.processor.data_structure.buffer_status import BufferStatus
-from ..types import DataType
-from src.common.processor.data_structure.buffer_dto import BufferDto
-from src.common.processor.transcriber.transcriber import Transcriber
+from ...common import get_audio_extension, srt_parser
+from ...data_structure.buffer_status import BufferStatus
+from ...types import DataType
+from ...data_structure.buffer_dto import BufferDto
+from ..transcriber_strategy import TranscriberStrategy
 
 
-class OpenAITranscriber(Transcriber):
+class OpenAITranscriber(TranscriberStrategy):
     """
     OpenAI Whisper API를 사용하는 전사기
     
@@ -98,7 +96,7 @@ class OpenAITranscriber(Transcriber):
             bool: AUDIO 타입이고 지원하는 확장자인 경우 True
         """
         return self.data_flow[0] == buffer_dto.data_type and \
-            audio_info.get_audio_extension(buffer_dto.buffer) in self.available_input_ext
+            get_audio_extension(buffer_dto.buffer) in self.available_input_ext
 
 
     def _transcribe_by_stream(self, audio: bytes) -> str:

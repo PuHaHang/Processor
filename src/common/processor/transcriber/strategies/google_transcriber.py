@@ -10,15 +10,15 @@ from typing import Tuple
 
 import speech_recognition as sr
 
-from src.common.processor.common import audio_info
-from ..types import DataType
-from src.common.processor.data_structure.buffer_dto import BufferDto
-from src.common.processor.data_structure.buffer_status import BufferStatus
-from src.common.processor.transcriber.transcriber import Transcriber
+from ...common import get_audio_extension
+from ...types import DataType
+from ...data_structure.buffer_dto import BufferDto
+from ...data_structure.buffer_status import BufferStatus
+from ..transcriber_strategy import TranscriberStrategy
 
 
 # TODO: Google Transcriber API 키 설정 필요
-class GoogleTranscriber (Transcriber):
+class GoogleTranscriber (TranscriberStrategy):
     """
     Google Speech Recognition API를 사용하는 전사기
     
@@ -96,7 +96,7 @@ class GoogleTranscriber (Transcriber):
             bool: AUDIO 타입이고 WAV 확장자인 경우 True
         """
         return buffer_dto.data_type == DataType.AUDIO and \
-            audio_info.get_audio_extension(buffer_dto.buffer) in self.available_input_ext
+            get_audio_extension(buffer_dto.buffer) in self.available_input_ext
 
 
     def _transcribe(self, audio: bytes) -> str:

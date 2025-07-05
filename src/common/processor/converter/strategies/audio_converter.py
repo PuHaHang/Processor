@@ -9,14 +9,14 @@ from typing import Tuple
 
 from pydub import AudioSegment
 
-from src.common.processor.common import audio_info
-from src.common.processor.converter.converter import Converter
-from src.common.processor.data_structure.buffer_dto import BufferDto
-from src.common.processor.data_structure.buffer_status import BufferStatus
-from ..types import DataType
+from ...common import get_audio_extension
+from ..converter_strategy import ConverterStrategy
+from ...data_structure.buffer_dto import BufferDto
+from ...data_structure.buffer_status import BufferStatus
+from ...types import DataType
 
 
-class AudioConverter (Converter):
+class AudioConverter (ConverterStrategy):
     """
     오디오 형식 변환을 수행하는 변환기
     
@@ -50,7 +50,7 @@ class AudioConverter (Converter):
             ValueError: 유효하지 않은 출력 확장자인 경우
         """
         # 입력 확장자와 출력 확장자 추출
-        src_ext = audio_info.get_audio_extension(buffer_dto.buffer)
+        src_ext = get_audio_extension(buffer_dto.buffer)
         dest_ext = opt.get("ext", self.default_output_ext)
 
         # 출력 확장자 유효성 검사
@@ -81,7 +81,7 @@ class AudioConverter (Converter):
         """
         try:
             return self.data_flow[0] == buffer_dto.data_type and \
-                audio_info.get_audio_extension(buffer_dto.buffer) in self.available_input_ext
+                get_audio_extension(buffer_dto.buffer) in self.available_input_ext
         except Exception:
             return False
 
@@ -110,7 +110,7 @@ class AudioConverter (Converter):
         # 소스 바이너리 데이터를 AudioSegment로 로드
         src_buffer = io.BytesIO(src_audio)
 
-        src_buffer = AudioSegment.from_file(src_buffer, format=audio_info.get_audio_extension(src_audio))
+        src_buffer = AudioSegment.from_file(src_buffer, format=get_audio_extension(src_audio))
         
         # 변환된 데이터를 바이너리로 내보내기
         dest_buffer = io.BytesIO()
