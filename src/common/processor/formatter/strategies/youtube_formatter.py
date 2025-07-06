@@ -1,8 +1,11 @@
 
 
 import re
+
 from urllib.parse import parse_qs, urlparse
-from src.common.processor.formatter.formatter_strategy import FormatterStrategy
+import tldextract
+
+from ..formatter_strategy import FormatterStrategy
 
 
 class YoutubeFormatter(FormatterStrategy):
@@ -12,12 +15,14 @@ class YoutubeFormatter(FormatterStrategy):
     YOUTUBE_URL_PATTERN = re.compile(
         "^(https?://)?" +                          # 프로토콜 (선택사항)
         "(www\\.)?" +                              # www (선택사항)  
-        "(youtube\\.com/" +                        # youtube.com/
-            "(watch\\?v=|embed/|v/|shorts/)" +     # 경로 타입들
-        "|youtu\\.be/" +                           # 또는 youtu.be/
-        "|m\\.youtube\\.com/watch\\?v=)" +         # 또는 모바일
+        "(" +
+            "youtube\\.com/" +                     # youtube.com/
+                "(watch\\?v=|embed/|v/|shorts/)" + # 경로 타입들
+            "|youtu\\.be/" +                       # 또는 youtu.be/
+            "|m\\.youtube\\.com/watch\\?v=" +      # 또는 모바일
+        ")" +
         "([a-zA-Z0-9_-]{11})" +                    # 비디오 ID (11자리)
-        "(\\?.*)?$"
+        "(&.*|\\?.*)?$"                            # 추가 쿼리 매개변수 (선택사항)
     );
 
     YOUTUBE_URL_TEMPLATE = "https://www.youtube.com/watch?v=%s"
@@ -34,9 +39,18 @@ class YoutubeFormatter(FormatterStrategy):
         parsed_url = urlparse(string)
         query = parse_qs(parsed_url.query)
 
+        if parsed_url.netloc == "youtu.be":
+            return {
+                "url": self.unparse({"v": [parsed_url.path.split("/")[-1]]}),
+                "platform": self.domain,
+                "metadata": {
+                    "is_shorts": False
+                }
+            }
+
         if parsed_url.path.startswith("/shorts/"):
             return {
-                "url": self.unparse({"v": parsed_url.path.split("/")[-1]}),
+                "url": self.unparse({"v": [parsed_url.path.split("/")[-1]]}),
                 "platform": self.domain,
                 "metadata": {
                     "is_shorts": True
@@ -58,6 +72,8 @@ class YoutubeFormatter(FormatterStrategy):
 
     def unparse(self, data: dict) -> str:
         if "v" not in data:
+            raise ValueError("Invalid YouTube URL")
+        elif len(data["v"]) == 0:
             raise ValueError("Invalid YouTube URL")
         elif len(data["v"]) > 1:
             raise ValueError("Invalid YouTube URL")
