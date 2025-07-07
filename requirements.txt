@@ -37,6 +37,6 @@ typing-inspection==0.4.1
 typing_extensions==4.14.0
 urllib3==2.5.0
 uvicorn==0.35.0
-yt-dlp==2025.6.25
+yt-dlp
 ffmpeg-python>=0.2.0
 tldextract==5.3.0
