@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 from src.common.processor.downloader.strategies import YtDlpDownloader
 from src.common.processor.types import DataType
-from src.common.processor.data_structure.buffer_dto import BufferDto
-from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.types import Payload
+from src.common.processor.types import PayloadStatus
 from src.common.processor.processor_type import ProcessorType 
 
 
@@ -42,11 +42,11 @@ class TestYtDlpDownloader:
         Returns:
             BufferDto: 테스트용 URL 버퍼 데이터
         """
-        return BufferDto(
+        return Payload(
             buffer="https://www.youtube.com/watch?v=dQw4w9WgXcQ".encode('utf-8'),
             metadata={},
             data_type=DataType.URL,
-            status=BufferStatus.INIT
+            status=PayloadStatus.INIT
         )
     
 
@@ -58,11 +58,11 @@ class TestYtDlpDownloader:
         Returns:
             BufferDto: 테스트용 잘못된 버퍼 데이터
         """
-        return BufferDto(
+        return Payload(
             buffer="invalid_data".encode('utf-8'),
             metadata={},
             data_type=DataType.AUDIO,
-            status=BufferStatus.INIT
+            status=PayloadStatus.INIT
         )
 
     

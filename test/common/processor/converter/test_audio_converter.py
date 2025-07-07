@@ -12,8 +12,8 @@ import io
 
 from src.common.processor.converter.strategies import AudioConverter
 from src.common.processor.types import DataType
-from src.common.processor.data_structure.buffer_dto import BufferDto
-from src.common.processor.data_structure.buffer_status import BufferStatus
+from src.common.processor.types import Payload
+from src.common.processor.types import PayloadStatus
 from src.common.processor.processor_type import ProcessorType
 
 
@@ -49,11 +49,11 @@ class TestAudioConverter:
             BufferDto: 테스트용 오디오 버퍼 데이터
         """
         src, ext = request.param
-        return BufferDto(
+        return Payload(
             buffer=open(f"test/resources/mockdata/{src}", "rb").read(),
             metadata={"ext": ext},
             data_type=DataType.AUDIO,
-            status=BufferStatus.INIT
+            status=PayloadStatus.INIT
         )
 
     
@@ -95,11 +95,11 @@ class TestAudioConverter:
         Args:
             converter: AudioConverter 인스턴스
         """
-        invalid_buffer = BufferDto(
+        invalid_buffer = Payload(
             buffer=b"invalid_data",
             metadata={},
             data_type=DataType.URL,
-            status=BufferStatus.INIT
+            status=PayloadStatus.INIT
         )
         assert converter.is_supported(invalid_buffer) == False
 
@@ -112,11 +112,11 @@ class TestAudioConverter:
         Args:
             converter: AudioConverter 인스턴스
         """
-        unsupported_buffer = BufferDto(
+        unsupported_buffer = Payload(
             buffer=b"audio_data",
             metadata={"ext": "unsupported"},
             data_type=DataType.AUDIO,
-            status=BufferStatus.INIT
+            status=PayloadStatus.INIT
         )
         assert converter.is_supported(unsupported_buffer) == False
 
@@ -139,7 +139,7 @@ class TestAudioConverter:
         
         # 검증
         assert result.data_type == DataType.AUDIO
-        assert result.status == BufferStatus.COMPLETED
+        assert result.status == PayloadStatus.COMPLETED
         assert result.metadata["ext"] == dest_ext
         assert len(result.buffer) > 0  # 변환된 데이터가 존재하는지 확인
 
