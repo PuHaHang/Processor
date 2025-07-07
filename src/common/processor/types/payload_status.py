@@ -7,7 +7,7 @@
 from enum import Enum
 
 
-class BufferStatus (Enum):
+class PayloadStatus (Enum):
     """
     버퍼 데이터의 처리 상태를 정의하는 열거형
     

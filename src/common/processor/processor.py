@@ -7,9 +7,9 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
-from src.common.processor.data_structure.buffer_dto import BufferDto
-from src.common.processor.data_type import DataType
-from src.common.processor.processor_type import ProcessorType
+from .types import Payload
+from .types import DataType
+from .processor_type import ProcessorType
 
 
 class Processor (ABC):
@@ -31,34 +31,46 @@ class Processor (ABC):
     available_input_ext: list[str]
     available_output_ext: list[str]
     default_output_ext: str
+    next_processor: 'Processor'
 
     @abstractmethod
-    def process(self, buffer_dto: BufferDto, opt: dict = {}) -> BufferDto:
+    def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
         버퍼 데이터를 처리하는 추상 메소드
         
         Args:
-            buffer_dto (BufferDto): 처리할 버퍼 데이터
+            payload (Payload): 처리할 버퍼 데이터
             opt (dict, optional): 처리 옵션
         
         Returns:
-            BufferDto: 처리된 버퍼 데이터
+            Payload: 처리된 버퍼 데이터
         """
-        pass
+        ...
 
 
     @abstractmethod
-    def is_supported(self, buffer_dto: BufferDto) -> bool:
+    def is_supported(self, payload: Payload) -> bool:
         """
         버퍼 데이터가 이 프로세서에서 지원되는지 확인하는 추상 메소드
         
         Args:
-            buffer_dto (BufferDto): 확인할 버퍼 데이터
+            payload (Payload): 확인할 버퍼 데이터
         
         Returns:
             bool: 지원 여부
         """
-        pass
+        ...
+
+
+    def set_next_processor(self, processor: 'Processor') -> 'Processor':
+        """
+        다음 프로세서를 설정합니다.
+        
+        Args:
+            processor (Processor): 설정할 다음 프로세서
+        """
+        self.next_processor = processor
+        return processor
 
 
     def get_data_flow(self) -> Tuple[DataType, DataType]:

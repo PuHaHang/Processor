@@ -8,10 +8,9 @@ SRT 자막 파일 파싱 및 처리 유틸리티 모듈
 
 import re
 from datetime import timedelta
-from typing import List, Tuple
 
 
-def parse_srt(srt_text: str) -> List[Tuple[int, str, str, str]]:
+def parse_srt(srt_text: str) -> list[tuple[int, str, str, str]]:
     """
     SRT 텍스트를 구조화된 리스트로 파싱합니다.
     
@@ -93,7 +92,7 @@ def shift_timestamp(ts: str, offset: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
 
-def merge_srt_chunks(srt_chunks: List[Tuple[str, float]]) -> str:
+def merge_srt_chunks(srt_chunks: list[tuple[str, float]]) -> str:
     """
     여러 개의 SRT 청크를 하나의 SRT 파일로 병합합니다.
     

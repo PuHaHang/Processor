@@ -7,12 +7,10 @@
 
 from pydantic import BaseModel
 
-from src.common.processor.data_type import DataType
+from . import DataType
+from .payload_status import PayloadStatus
 
-from .buffer_status import BufferStatus
-
-
-class BufferDto (BaseModel):
+class Payload (BaseModel):
     """
     프로세서 간 데이터 전달을 위한 버퍼 데이터 전송 객체
     
@@ -28,7 +26,7 @@ class BufferDto (BaseModel):
     buffer: bytes
     metadata: dict
     data_type: DataType
-    status: BufferStatus
+    status: PayloadStatus
 
 
     def get_buffer_string(self) -> str:
@@ -81,7 +79,7 @@ class BufferDto (BaseModel):
         return self.data_type
     
     
-    def get_status(self) -> BufferStatus:
+    def get_status(self) -> PayloadStatus:
         """
         현재 처리 상태를 반환합니다.
         
