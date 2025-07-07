@@ -7,7 +7,7 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
-from .data_structure.buffer_dto import BufferDto
+from .types import Payload
 from .types import DataType
 from .processor_type import ProcessorType
 
@@ -34,27 +34,27 @@ class Processor (ABC):
     next_processor: 'Processor'
 
     @abstractmethod
-    def process(self, buffer_dto: BufferDto, opt: dict = {}) -> BufferDto:
+    def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
         버퍼 데이터를 처리하는 추상 메소드
         
         Args:
-            buffer_dto (BufferDto): 처리할 버퍼 데이터
+            payload (Payload): 처리할 버퍼 데이터
             opt (dict, optional): 처리 옵션
         
         Returns:
-            BufferDto: 처리된 버퍼 데이터
+            Payload: 처리된 버퍼 데이터
         """
         ...
 
 
     @abstractmethod
-    def is_supported(self, buffer_dto: BufferDto) -> bool:
+    def is_supported(self, payload: Payload) -> bool:
         """
         버퍼 데이터가 이 프로세서에서 지원되는지 확인하는 추상 메소드
         
         Args:
-            buffer_dto (BufferDto): 확인할 버퍼 데이터
+            payload (Payload): 확인할 버퍼 데이터
         
         Returns:
             bool: 지원 여부

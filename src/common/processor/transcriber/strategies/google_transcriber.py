@@ -12,8 +12,7 @@ import speech_recognition as sr
 
 from ...common import get_audio_extension
 from ...types import DataType
-from ...data_structure.buffer_dto import BufferDto
-from ...data_structure.buffer_status import BufferStatus
+from ...types import Payload, PayloadStatus
 from ..transcriber_strategy import TranscriberStrategy
 
 
@@ -52,7 +51,7 @@ class GoogleTranscriber (TranscriberStrategy):
         self.recognizer = sr.Recognizer()
 
 
-    def process(self, buffer_dto: BufferDto, opt: dict = {}) -> BufferDto:
+    def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
         오디오 데이터를 Google API로 전사하여 텍스트로 변환합니다.
         
@@ -60,29 +59,29 @@ class GoogleTranscriber (TranscriberStrategy):
         한국어 텍스트로 변환합니다.
         
         Args:
-            buffer_dto (BufferDto): 처리할 오디오 버퍼 데이터
+            payload (Payload): 처리할 오디오 버퍼 데이터
             opt (dict, optional): 처리 옵션. 기본값은 빈 딕셔너리
         
         Returns:
-            BufferDto: 전사된 텍스트가 포함된 버퍼 데이터
+            Payload: 전사된 텍스트가 포함된 버퍼 데이터
             
         Raises:
             ValueError: 지원되지 않는 데이터 타입인 경우
         """
         # 지원되는 오디오 형식인지 확인
-        if not self.is_supported(buffer_dto):
-            raise ValueError(f"GoogleTranscriber is not supported for {buffer_dto.data_type}")
+        if not self.is_supported(payload):
+            raise ValueError(f"GoogleTranscriber is not supported for {payload.data_type}")
 
         # 오디오 전사 수행 및 결과 반환
-        return BufferDto(
-            buffer=self._transcribe(buffer_dto.buffer).encode('utf-8'),
+        return Payload(
+            buffer=self._transcribe(payload.buffer).encode('utf-8'),
             metadata={"recognizer": "google"},
             data_type=DataType.TEXT,
-            status=BufferStatus.COMPLETED
+            status=PayloadStatus.COMPLETED
         )
 
 
-    def is_supported(self, buffer_dto: BufferDto) -> bool:
+    def is_supported(self, payload: Payload) -> bool:
         """
         버퍼 데이터가 이 전사기에서 지원되는지 확인합니다.
         
@@ -90,13 +89,13 @@ class GoogleTranscriber (TranscriberStrategy):
         WAV 확장자인 경우에만 지원됩니다.
         
         Args:
-            buffer_dto (BufferDto): 확인할 버퍼 데이터
+            payload (Payload): 확인할 버퍼 데이터
         
         Returns:
             bool: AUDIO 타입이고 WAV 확장자인 경우 True
         """
-        return buffer_dto.data_type == DataType.AUDIO and \
-            get_audio_extension(buffer_dto.buffer) in self.available_input_ext
+        return payload.data_type == DataType.AUDIO and \
+            get_audio_extension(payload.buffer) in self.available_input_ext
 
 
     def _transcribe(self, audio: bytes) -> str:

@@ -19,8 +19,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import requests
 from yt_dlp import YoutubeDL
 
-from ...data_structure.buffer_dto import BufferDto
-from ...data_structure.buffer_status import BufferStatus
+from ...types import Payload, PayloadStatus
 from ...formatter import Formatter
 
 
@@ -46,16 +45,16 @@ class YtDlpDownloader (DownloaderStrategy):
     default_output_ext: str = "webm"
 
     
-    def process(self, buffer_dto: BufferDto, opt: dict = {}) -> BufferDto:
+    def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
         URL에서 오디오를 다운로드하여 버퍼 데이터로 변환합니다.
         
         Args:
-            buffer_dto (BufferDto): 처리할 URL 버퍼 데이터
+            payload (Payload): 처리할 URL 버퍼 데이터
             opt (dict, optional): 처리 옵션
         
         Returns:
-            BufferDto: 다운로드된 오디오 데이터가 포함된 버퍼 데이터
+            Payload: 다운로드된 오디오 데이터가 포함된 버퍼 데이터
             
         Raises:
             ValueError: 지원되지 않는 URL 형식인 경우
@@ -63,35 +62,35 @@ class YtDlpDownloader (DownloaderStrategy):
         formatter = Formatter()
 
         # URL에서 비디오 ID와 플랫폼 추출
-        reference = formatter.parse(buffer_dto.get_buffer_string())
+        reference = formatter.parse(payload.get_buffer_string())
         if not reference:
-            raise ValueError(f"Invalid reference: {buffer_dto.get_buffer_string()}")
+            raise ValueError(f"Invalid reference: {payload.get_buffer_string()}")
 
         # 실제 스트리밍 URL 추출
         stream_url = self._extract_stream_url(formatter.unparse(reference))
 
-        return BufferDto(
+        return Payload(
             buffer=self._download_stream(stream_url).getvalue(),
             metadata={
                 "reference": reference,
             },
             data_type=DataType.AUDIO,
-            status=BufferStatus.COMPLETED
+            status=PayloadStatus.COMPLETED
         )
 
 
-    def is_supported(self, buffer_dto: BufferDto) -> bool:
+    def is_supported(self, payload: Payload) -> bool:
         """
         버퍼 데이터가 이 다운로더에서 지원되는지 확인합니다.
         
         Args:
-            buffer_dto (BufferDto): 확인할 버퍼 데이터
+            payload (Payload): 확인할 버퍼 데이터
         
         Returns:
             bool: URL 타입이고 파싱 가능한 경우 True
         """
-        return self.data_flow[0] == buffer_dto.data_type and \
-            self._is_supported(buffer_dto.get_buffer_string())
+        return self.data_flow[0] == payload.data_type and \
+            self._is_supported(payload.get_buffer_string())
 
 
     def _download_stream(self, stream_url: str) -> io.BytesIO:

@@ -1,5 +1,5 @@
 from ..processor_type import ProcessorType
-from ..data_structure.buffer_dto import BufferDto
+from ..types import Payload
 from ..processor import Processor
 from .transcriber_strategy import TranscriberStrategy
 from .strategies import OpenAITranscriber, GoogleTranscriber
@@ -15,15 +15,15 @@ class Transcriber (Processor):
     ]
 
 
-    def process(self, buffer_dto: BufferDto, opt: dict = {}) -> BufferDto:
-        strategy = self._get_context(buffer_dto)
-        return strategy.process(buffer_dto, opt)
+    def process(self, payload: Payload, opt: dict = {}) -> Payload:
+        strategy = self._get_context(payload)
+        return strategy.process(payload, opt)
 
-    def is_supported(self, buffer_dto: BufferDto) -> bool:
-        return self._get_context(buffer_dto).is_supported(buffer_dto)
+    def is_supported(self, payload: Payload) -> bool:
+        return self._get_context(payload).is_supported(payload)
 
-    def _get_context(self, buffer_dto: BufferDto) -> TranscriberStrategy:
+    def _get_context(self, payload: Payload) -> TranscriberStrategy:
         for strategy in self.strategies:
-            if strategy.is_supported(buffer_dto):
+            if strategy.is_supported(payload):
                 return strategy
-        raise ValueError(f"No transcriber found for buffer_dto: {buffer_dto}")
+        raise ValueError(f"No transcriber found for payload: {payload}")
