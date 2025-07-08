@@ -63,7 +63,8 @@ class AudioConverter (ConverterStrategy):
             }),
             metadata={"ext": dest_ext},
             data_type=DataType.AUDIO,
-            status=PayloadStatus.COMPLETED
+            status=PayloadStatus.COMPLETED,
+            processor=type(self)
         )
 
 

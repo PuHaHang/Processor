@@ -5,6 +5,7 @@
 버퍼 데이터 전송 객체(DTO)를 정의합니다.
 """
 
+from typing import Optional
 from pydantic import BaseModel
 
 from . import DataType
@@ -27,6 +28,7 @@ class Payload (BaseModel):
     metadata: dict
     data_type: DataType
     status: PayloadStatus
+    processor: Optional[type] = None
 
 
     def get_buffer(self) -> bytes:
@@ -68,3 +70,20 @@ class Payload (BaseModel):
         """
         return self.status
     
+    def get_processor(self) -> type | None:
+        """
+        프로세서 타입을 반환합니다.
+        
+        Returns:
+            type[Processor]: 프로세서 타입
+        """
+        return self.processor
+    
+    def is_processed_by(self, processor: type) -> bool:
+        """
+        현재 프로세서가 처리한 데이터인지 확인합니다.
+        
+        Returns:
+            bool: 처리 여부
+        """
+        return self.processor == processor

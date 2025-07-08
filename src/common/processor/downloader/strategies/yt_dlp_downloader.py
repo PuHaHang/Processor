@@ -77,7 +77,8 @@ class YtDlpDownloader (DownloaderStrategy):
                 "reference": reference,
             },
             data_type=DataType.AUDIO,
-            status=PayloadStatus.COMPLETED
+            status=PayloadStatus.COMPLETED,
+            processor=type(self)
         )
 
 
