@@ -61,10 +61,12 @@ class YtDlpDownloader (DownloaderStrategy):
         """
         formatter = Formatter()
 
+        buffer_data = payload.get_buffer().decode('utf-8')
+
         # URL에서 비디오 ID와 플랫폼 추출
-        reference = formatter.parse(payload.get_buffer_string())
+        reference = formatter.parse(buffer_data)
         if not reference:
-            raise ValueError(f"Invalid reference: {payload.get_buffer_string()}")
+            raise ValueError(f"Invalid reference: {buffer_data}")
 
         # 실제 스트리밍 URL 추출
         stream_url = self._extract_stream_url(formatter.unparse(reference))
@@ -90,7 +92,7 @@ class YtDlpDownloader (DownloaderStrategy):
             bool: URL 타입이고 파싱 가능한 경우 True
         """
         return self.data_flow[0] == payload.data_type and \
-            self._is_supported(payload.get_buffer_string())
+            self._is_supported(payload.get_buffer().decode('utf-8'))
 
 
     def _download_stream(self, stream_url: str) -> io.BytesIO:

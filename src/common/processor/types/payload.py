@@ -29,26 +29,6 @@ class Payload (BaseModel):
     status: PayloadStatus
 
 
-    def get_buffer_string(self) -> str:
-        """
-        버퍼 데이터를 UTF-8 문자열로 디코딩하여 반환합니다.
-        
-        Returns:
-            str: 디코딩된 문자열 데이터
-        """
-        return self.buffer.decode('utf-8')
-    
-    
-    def get_buffer_bytes(self) -> bytes:
-        """
-        버퍼 데이터를 바이트 형태로 반환합니다.
-        
-        Returns:
-            bytes: 바이너리 데이터
-        """
-        return self.buffer
-
-
     def get_buffer(self) -> bytes:
         """
         버퍼 데이터를 반환합니다.
