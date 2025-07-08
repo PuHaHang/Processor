@@ -38,7 +38,6 @@ class YoutubeFormatter(FormatterStrategy):
     def parse(self, string: str) -> dict:
         parsed_url = urlparse(string)
         query = parse_qs(parsed_url.query)
-
         if parsed_url.netloc == "youtu.be":
             return {
                 "url": self.unparse({"v": [parsed_url.path.split("/")[-1]]}),
@@ -71,13 +70,18 @@ class YoutubeFormatter(FormatterStrategy):
         }
 
     def unparse(self, data: dict) -> str:
-        if "v" not in data:
-            raise ValueError("Invalid YouTube URL")
-        elif len(data["v"]) == 0:
-            raise ValueError("Invalid YouTube URL")
-        elif len(data["v"]) > 1:
-            raise ValueError("Invalid YouTube URL")
+        if "v" in data:
+            if len(data["v"]) == 0:
+                raise ValueError("Invalid YouTube URL")
+            elif len(data["v"]) > 1:
+                raise ValueError("Invalid YouTube URL")
+            return self.YOUTUBE_URL_TEMPLATE % data["v"][0]
+        elif "platform" in data and data["platform"] == self.domain:
+            if "url" not in data:
+                raise ValueError("Invalid YouTube URL")
+            return data["url"]
         
-        return self.YOUTUBE_URL_TEMPLATE % data["v"][0]
+        raise ValueError("Invalid YouTube URL")
+
 
         
