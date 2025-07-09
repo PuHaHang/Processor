@@ -13,6 +13,15 @@ class Evaluator:
         YtDlpEvaluator(),
     ]
 
+    strategy_map: dict[type, list[EvaluatorStrategy]] = {}
+
+    def __init__(self):
+        # 동적으로 전략 매핑 테이블 생성 | 순환 참조 방지
+        for strategy in self.strategies:
+            for processor in strategy.get_available_processors():
+                if processor not in self.strategy_map:
+                    self.strategy_map[processor] = []
+                self.strategy_map[processor].append(strategy)
 
     def evaluate(self, payload: Payload) -> bool:
         # 페이로드에 적합한 평가 전략을 찾음
@@ -26,8 +35,12 @@ class Evaluator:
         return strategy.evaluate(payload)
     
     def _get_context(self, payload: Payload) -> EvaluatorStrategy|None:
+        processor = payload.get_processor()
+        if processor is None:
+            return None
+        
         # 등록된 모든 전략을 순회하면서
-        for strategy in self.strategies:
+        for strategy in self.strategy_map[processor]:
             # 현재 페이로드를 지원하는 전략이 있는지 확인
             if strategy.is_supported(payload):
                 return strategy
