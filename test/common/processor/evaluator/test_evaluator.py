@@ -11,7 +11,7 @@ import sys
 from unittest.mock import Mock, patch, MagicMock
 
 # 테스트용 환경변수 설정
-os.environ['MODEL_PATH'] = '/tmp'
+os.environ['MODEL_PATH'] = 'test/resources/models'
 os.environ['ZEROSHOT_MODEL_NAME'] = 'test-model'
 
 # 모델 관련 모듈들을 mock으로 처리
