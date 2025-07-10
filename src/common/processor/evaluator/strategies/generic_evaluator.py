@@ -47,8 +47,9 @@ TODO:
 버전: 1.0.0
 """
 
-from src.common.processor.evaluator.evaluator_strategy import EvaluatorStrategy
-from src.common.processor.types.payload import Payload
+from ..evaluator_strategy import EvaluatorStrategy
+from ...types.payload import Payload
+from ...types.data_type import DataType
 
 
 class GenericEvaluator(EvaluatorStrategy):
@@ -154,7 +155,7 @@ class GenericEvaluator(EvaluatorStrategy):
             - 시간 복잡도: O(1) - 단순 문자열 비교
             - 공간 복잡도: O(1) - 추가 메모리 사용 없음
         """
-        return payload.data_type == "text"
+        return payload.data_type == DataType.TEXT
     
     def evaluate(self, payload: Payload) -> bool:
         """
