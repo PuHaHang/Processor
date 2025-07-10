@@ -5,6 +5,8 @@ import onnxruntime as ort
 import numpy as np
 from transformers import AutoTokenizer
 
+from .classifier import Classifier
+
 # 레시피/요리 관련으로 분류하고 싶은 타겟 라벨들
 target_labels = [
     "recipe",
@@ -39,7 +41,9 @@ other_labels = [
 ]
 
 
-class BertBaseClassifier:
+class BertBaseClassifier (Classifier):
+    max_length: int = 128
+
     def __init__(self, model_name: str):
         # 환경변수에서 모델 경로를 가져오거나 현재 디렉토리 사용
         model_path = os.getenv("MODEL_PATH", ".") + "/" + model_name

@@ -6,11 +6,12 @@ import numpy as np
 import onnx
 import onnxruntime as ort
 from transformers import AutoTokenizer
+from .classifier import Classifier
 
 
-class ZeroShotClassifier:
+class ZeroShotClassifier (Classifier):
     # 토큰화할 때 사용할 최대 길이
-    max_length: int = 128
+    max_length: int = 512
     
     # NLI(Natural Language Inference) 모델의 분류 라벨들
     # entailment: 함의(가설이 전제에서 참), neutral: 중립, contradiction: 모순

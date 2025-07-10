@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import os
 from typing import Any
 
-from ._models import ZeroShotClassifier
+from ._models import Classifier, ZeroShotClassifier
 from ..types import Payload
 
 
@@ -12,7 +12,7 @@ class EvaluatorStrategy (ABC):
     
     # 모든 평가 전략이 공유하는 Zero-shot 분류기
     # 환경변수에서 모델명을 가져오거나 기본 모델 사용
-    classifier = ZeroShotClassifier(
+    classifier: Classifier = ZeroShotClassifier(
         os.getenv("ZEROSHOT_MODEL_NAME", "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7")
     )
 
