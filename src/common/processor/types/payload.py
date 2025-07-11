@@ -87,3 +87,9 @@ class Payload (BaseModel):
             bool: 처리 여부
         """
         return self.processor == processor
+        
+    def __str__(self) -> str:
+        return f"Payload(buffer=bytes, metadata={self.metadata}, data_type={self.data_type}, status={self.status}, processor={self.processor})"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
