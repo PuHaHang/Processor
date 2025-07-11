@@ -79,7 +79,8 @@ class OpenAITranscriber(TranscriberStrategy):
                 "response_format": "srt",
             },
             data_type=self.data_flow[1],
-            status=PayloadStatus.COMPLETED
+            status=PayloadStatus.COMPLETED,
+            processor=type(self)
         )
 
     

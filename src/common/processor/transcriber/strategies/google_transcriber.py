@@ -77,7 +77,8 @@ class GoogleTranscriber (TranscriberStrategy):
             buffer=self._transcribe(payload.buffer).encode('utf-8'),
             metadata={"recognizer": "google"},
             data_type=DataType.TEXT,
-            status=PayloadStatus.COMPLETED
+            status=PayloadStatus.COMPLETED,
+            processor=type(self)
         )
 
 

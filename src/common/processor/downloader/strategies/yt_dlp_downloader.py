@@ -7,7 +7,7 @@ YouTube-DL 다운로더 모듈
 
 import io
 import os, sys
-from typing import Tuple
+from typing import Any, Tuple
 
 from yt_dlp.utils import DownloadError
 
@@ -44,6 +44,37 @@ class YtDlpDownloader (DownloaderStrategy):
     available_output_ext: list[str] = ["webm"]
     default_output_ext: str = "webm"
 
+    metadata_keys_to_delete: dict[str, Any] = {
+        # Youtube 메타데이터 키 삭제
+        "url": None,
+        "formats": {
+            "url": None,
+            "manifest_url": None,
+            "fragments": None,
+        },
+        "http_headers": None,
+        "thumbnails": None,
+        "view_count": None,
+        "live_status": None,
+        "media_type": None,
+        "release_timestamp": None,
+        "_format_sort_fields": None,
+        "automatic_captions": None,
+        "channel_follower_count": None,
+        "playlist": None,
+        "playlist_index": None,
+        "is_live": None,
+        "was_live": None,
+        "requested_subtitles": None,
+        "epoch": None,
+        "requested_formats": None,
+        "like_count": None,
+        "comment_count": None,
+        "age_limit": None,
+        "tags": None,
+        "categories": None,
+    }
+
     
     def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
@@ -61,21 +92,24 @@ class YtDlpDownloader (DownloaderStrategy):
         """
         formatter = Formatter()
 
+        buffer_data = payload.get_buffer().decode('utf-8')
+
         # URL에서 비디오 ID와 플랫폼 추출
-        reference = formatter.parse(payload.get_buffer_string())
+        reference = formatter.parse(buffer_data)
         if not reference:
-            raise ValueError(f"Invalid reference: {payload.get_buffer_string()}")
+            raise ValueError(f"Invalid reference: {buffer_data}")
 
         # 실제 스트리밍 URL 추출
         stream_url = self._extract_stream_url(formatter.unparse(reference))
 
         return Payload(
             buffer=self._download_stream(stream_url).getvalue(),
-            metadata={
+            metadata=self._extract_metadata(formatter.unparse(reference)) | {
                 "reference": reference,
             },
             data_type=DataType.AUDIO,
-            status=PayloadStatus.COMPLETED
+            status=PayloadStatus.COMPLETED,
+            processor=type(self)
         )
 
 
@@ -90,7 +124,7 @@ class YtDlpDownloader (DownloaderStrategy):
             bool: URL 타입이고 파싱 가능한 경우 True
         """
         return self.data_flow[0] == payload.data_type and \
-            self._is_supported(payload.get_buffer_string())
+            self._is_supported(payload.get_buffer().decode('utf-8'))
 
 
     def _download_stream(self, stream_url: str) -> io.BytesIO:
@@ -130,13 +164,7 @@ class YtDlpDownloader (DownloaderStrategy):
             info = ydl.extract_info(video_url, download=False)
             if info is None:
                 return {}
-            try:
-                # 실제 스트림 URL은 메타데이터에서 제거
-                if 'url' in info:
-                    del info['url']
-            except (KeyError, TypeError):
-                pass
-            return info if isinstance(info, dict) else {}
+            return self._delete_metadata_keys(info) if isinstance(info, dict) else {}
 
 
     def _extract_stream_url(self, url: str) -> str:
@@ -182,3 +210,22 @@ class YtDlpDownloader (DownloaderStrategy):
             return False
         except Exception:
             return False
+    
+    def _delete_metadata_keys(self, info: dict, keys: dict[str, Any] = metadata_keys_to_delete) -> dict:
+        for key, value in keys.items():
+            if key in info:
+                if value is None:
+                    info.pop(key, None)
+                    continue
+
+                if isinstance(info[key], dict):
+                    info[key] = self._delete_metadata_keys(info[key], value)
+                elif isinstance(info[key], list):
+                    for item in info[key]:
+                        if isinstance(item, dict):
+                            info[key] = self._delete_metadata_keys(item, value)
+                        else:
+                            info[key] = item
+                else:
+                    info.pop(key, None)
+        return info

@@ -7,8 +7,7 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
-from .types import Payload
-from .types import DataType
+from .types import DataType, Payload
 from .processor_type import ProcessorType
 
 

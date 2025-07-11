@@ -5,9 +5,9 @@
 URL에서 오디오를 다운로드하고, 필요시 형식을 변환한 후, STT를 통해 텍스트로 변환하는 전체 워크플로우를 관리합니다.
 """
 
+from .evaluator import Evaluator
 from .converter import Converter
-from .data_structure.buffer_dto import BufferDto
-from .data_structure.buffer_status import BufferStatus
+from .types import DataType, Payload, PayloadStatus
 from .downloader import Downloader
 from .processor import Processor
 from .processor_type import ProcessorType
@@ -38,7 +38,7 @@ class Agent:
     # 프로세서 처리 실패 시 최대 재시도 횟수
     max_retry: int = 3
 
-    def process(self, buffer_dto: BufferDto, opt: dict = {}) -> BufferDto:
+    def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
         버퍼 데이터를 처리 파이프라인을 통해 처리합니다.
         
@@ -47,7 +47,7 @@ class Agent:
         재시도를 수행하고, 최종 실패 시 예외를 발생시킵니다.
         
         Args:
-            buffer_dto (BufferDto): 처리할 버퍼 데이터 (초기에는 URL 텍스트)
+            payload (Payload): 처리할 버퍼 데이터 (초기에는 URL 텍스트)
             opt (dict, optional): 처리 옵션. 기본값은 빈 딕셔너리
         
         Returns:
@@ -58,37 +58,41 @@ class Agent:
         
         Example:
             >>> agent = Agent()
-            >>> url_dto = BufferDto(
+            >>> url_dto = Payload(
             ...     buffer="https://youtube.com/watch?v=...".encode(),
             ...     data_type=DataType.TEXT,
-            ...     status=BufferStatus.INIT
+            ...     status=BufferStatus.INIT,
             ... )
             >>> result = agent.process(url_dto)
-            >>> print(result.get_buffer_string())  # 전사된 텍스트 출력
         """
         # 파이프라인 구성
-        pipeline = self._construct_pipeline(buffer_dto, opt)
+        pipeline = self._construct_pipeline(payload, opt)
         metadatas = []  # 각 단계의 메타데이터 수집
+
+        evaluator = Evaluator()
 
         # 각 프로세서를 순차적으로 실행
         for processor in pipeline:
             # 버퍼 데이터 유효성 검사
-            if not buffer_dto:
-                raise ValueError("BufferDto is None")
+            if not payload:
+                raise ValueError("Payload is None")
                 
             # 최대 재시도 횟수만큼 시도
             for retry_count in range(self.max_retry):
                 # 현재 프로세서가 버퍼 데이터를 지원하는지 확인
-                if processor.is_supported(buffer_dto):
+                if processor.is_supported(payload):
                     try:
                         # 프로세서 실행 로그
                         print(f"{processor.get_processor_type()} processing")
                         
                         # 실제 프로세서 실행
-                        buffer_dto = processor.process(buffer_dto)
+                        payload = processor.process(payload)
+                        
+                        if not evaluator.evaluate(payload):
+                            raise ValueError("Invalid Content")
                         
                         # 처리 결과의 메타데이터 저장
-                        metadatas.append(buffer_dto.metadata)
+                        metadatas.append(payload.metadata)
                         
                         # 성공 시 재시도 루프 탈출
                         break
@@ -100,22 +104,22 @@ class Agent:
                             raise e
                         
                         # 재시도 로그
-                        print(f"Processor {processor.get_processor_type()} failed to process {buffer_dto.get_data_type()}")
+                        print(f"Processor {processor.get_processor_type()} failed to process {payload.data_type}")
                         continue
                 else:
                     # 프로세서가 현재 데이터 타입을 지원하지 않는 경우
-                    raise ValueError(f"Processor {processor.get_processor_type()} is not supported for {buffer_dto.get_data_type()}")
+                    raise ValueError(f"Processor {processor.get_processor_type()} is not supported for {payload.data_type}")
 
             # 처리 상태 검증
-            if buffer_dto.get_status() != BufferStatus.COMPLETED:
-                raise ValueError(f"Processor {processor.get_processor_type()} failed to process {buffer_dto.get_data_type()}")
+            if payload.status != PayloadStatus.COMPLETED:
+                raise ValueError(f"Processor {processor.get_processor_type()} failed to process {payload.data_type}")
         
         # 전체 파이프라인의 메타데이터 출력 (디버깅용)
         print("Pipeline metadata:", metadatas)
-        return buffer_dto
+        return payload
 
     
-    def _construct_pipeline(self, buffer_dto: BufferDto, opt: dict = {}) -> list[Processor]:
+    def _construct_pipeline(self, payload: Payload, opt: dict = {}) -> list[Processor]:
         """
         처리 파이프라인을 구성합니다.
         
@@ -125,7 +129,7 @@ class Agent:
         최적의 프로세서 경로를 자동으로 선택할 수 있게 됩니다.
         
         Args:
-            buffer_dto (BufferDto): 처리할 버퍼 데이터 (파이프라인 결정에 사용)
+            payload (Payload): 처리할 버퍼 데이터 (파이프라인 결정에 사용)
             opt (dict, optional): 파이프라인 구성 옵션
                 - 'target_format': 원하는 최종 출력 형식
                 - 'quality': 처리 품질 설정 ('fast', 'balanced', 'high')
@@ -151,8 +155,8 @@ class Agent:
         
         return [
             Downloader(),     # 오디오 다운로드
-            Converter(),    # 오디오 형식 변환 (현재 비활성화)
-            Transcriber(),   # 오디오 → 텍스트 전사
+            # Converter(),    # 오디오 형식 변환 (현재 비활성화)
+            # Transcriber(),   # 오디오 → 텍스트 전사
         ]
 
 
