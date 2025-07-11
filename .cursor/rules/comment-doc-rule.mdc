@@ -1,5 +1,5 @@
 ---
-description: Ruleset for writing python documentation
+description: Ruleset for writing Python documentation
 alwaysApply: false
 ---
 **This rule applies only when the user directly instructs the generation of docstrings and comments; otherwise, do not consider this rule**
