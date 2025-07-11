@@ -19,3 +19,4 @@ class DataType (Enum):
     AUDIO = 2   # 오디오 바이너리 데이터
     TEXT = 3    # 텍스트 문자열 데이터
     METADATA = 4 # 메타데이터 데이터
+    GENERIC = 5 # 일반 데이터
