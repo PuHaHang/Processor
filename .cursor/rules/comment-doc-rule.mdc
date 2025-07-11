@@ -197,7 +197,7 @@ def process_data(self, payload: dict, options: dict = None, timeout: int = 30) -
         - 모니터링 시스템에 메트릭 정보 전송
         - 캐시 시스템에 결과 저장 (성공 시)
 
-    Example:
+    Example [**표준 출력, 혹은 기타 출력이 발생하여 확인이 필요한 경우에만 적용**]:
         >>> processor = DataProcessor(JsonRefiner())
         >>> payload = {
         ...     'data': {'records': [...]},
