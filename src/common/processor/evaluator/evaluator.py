@@ -3,13 +3,14 @@
 from ..types import Payload
 
 from .evaluator_strategy import EvaluatorStrategy
-from .strategies.yt_dlp_evaluator import YtDlpEvaluator
+from .strategies import InitEvaluator, YtDlpEvaluator
 
 
 class Evaluator:
     # 사용 가능한 평가 전략들을 리스트로 관리
     # 현재는 YouTube 다운로더 전용 평가기만 등록됨
     strategies: list[EvaluatorStrategy] = [
+        InitEvaluator(),
         YtDlpEvaluator(),
     ]
 
