@@ -59,49 +59,33 @@ class OpenAIRefiner(RefinerStrategy):
             ValueError: 지원하지 않는 데이터 타입인 경우
             RuntimeError: OpenAI 클라이언트 초기화 또는 API 호출 실패
         """
-        try:
-            # 입력 검증
-            if not self.is_supported(payload):
-                raise ValueError(f"지원하지 않는 데이터 타입입니다: {payload.data_type}")
 
-            # OpenAI 클라이언트 초기화
-            client = self._get_openai_client()
-            
-            # 데이터 타입에 따른 처리
-            if payload.data_type == DataType.TEXT:
-                refined_content = self._process_text_data(client, payload)
-            else:
-                raise ValueError(f"처리할 수 없는 데이터 타입입니다: {payload.data_type}")
+        # 입력 검증
+        if not self.is_supported(payload):
+            raise ValueError(f"지원하지 않는 데이터 타입입니다: {payload.data_type}")
+        
+        # OpenAI 클라이언트 초기화
+        client = self._get_openai_client()
+        
+        # 데이터 타입에 따른 처리
+        if payload.data_type == DataType.TEXT:
+            refined_content = self._process_text_data(client, payload)
+        else:
+            raise ValueError(f"처리할 수 없는 데이터 타입입니다: {payload.data_type}")
 
-            # 결과 페이로드 생성
-            result_payload = Payload(
-                buffer=refined_content.encode('utf-8'),
-                metadata={
-                    **payload.metadata
-                },
-                data_type=DataType.TEXT,
-                status=PayloadStatus.COMPLETED,
-                processor=self.__class__
-            )
+        # 결과 페이로드 생성
+        result_payload = Payload(
+            buffer=refined_content.encode('utf-8'),
+            metadata={
+                **payload.metadata
+            },
+            data_type=DataType.TEXT,
+            status=PayloadStatus.COMPLETED,
+            processor=self.__class__
+        )
 
-            self._logger.info(f"레시피 정제 완료: {payload.data_type.name} → TEXT")
-            return result_payload
-
-        except Exception as e:
-            self._logger.error(f"레시피 정제 중 오류 발생: {str(e)}")
-            # 오류 상태의 페이로드 반환
-            error_payload = Payload(
-                buffer=f"레시피 정제 실패: {str(e)}".encode('utf-8'),
-                metadata={
-                    **payload.metadata,
-                    'error': str(e),
-                    'failed_processor': self.__class__.__name__
-                },
-                data_type=payload.data_type,
-                status=PayloadStatus.ERROR,
-                processor=self.__class__
-            )
-            return error_payload
+        self._logger.info(f"레시피 정제 완료: {payload.data_type.name} → TEXT")
+        return result_payload
 
     def is_supported(self, payload: Payload) -> bool:
         """

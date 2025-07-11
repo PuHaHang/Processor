@@ -56,53 +56,37 @@ class GeminiRefiner(RefinerStrategy):
             ValueError: 지원하지 않는 데이터 타입인 경우
             RuntimeError: Gemini 클라이언트 초기화 또는 API 호출 실패
         """
-        try:
-            # 입력 검증
-            if not self.is_supported(payload):
-                raise ValueError(f"지원하지 않는 데이터 타입입니다: {payload.data_type}")
+        
+        # 입력 검증
+        if not self.is_supported(payload):
+            raise ValueError(f"지원하지 않는 데이터 타입입니다: {payload.data_type}")
 
-            # Gemini 클라이언트 초기화
-            client = self._get_gemini_client()
-            
-            # 데이터 타입에 따른 처리
-            if payload.data_type == DataType.VIDEO:
-                refined_content = self._process_video_data(client, payload)
-            elif payload.data_type == DataType.AUDIO:
-                refined_content = self._process_audio_data(client, payload)
-            elif payload.data_type == DataType.TEXT:
-                refined_content = self._process_text_data(client, payload)
-            else:
-                raise ValueError(f"처리할 수 없는 데이터 타입입니다: {payload.data_type}")
+        # Gemini 클라이언트 초기화
+        client = self._get_gemini_client()
+        
+        # 데이터 타입에 따른 처리
+        if payload.data_type == DataType.VIDEO:
+            refined_content = self._process_video_data(client, payload)
+        elif payload.data_type == DataType.AUDIO:
+            refined_content = self._process_audio_data(client, payload)
+        elif payload.data_type == DataType.TEXT:
+            refined_content = self._process_text_data(client, payload)
+        else:
+            raise ValueError(f"처리할 수 없는 데이터 타입입니다: {payload.data_type}")
 
-            # 결과 페이로드 생성
-            result_payload = Payload(
-                buffer=refined_content.encode('utf-8'),
-                metadata={
-                    **payload.metadata
-                },
-                data_type=DataType.TEXT,
-                status=PayloadStatus.COMPLETED,
-                processor=self.__class__
-            )
+        # 결과 페이로드 생성
+        result_payload = Payload(
+            buffer=refined_content.encode('utf-8'),
+            metadata={
+                **payload.metadata
+            },
+            data_type=DataType.TEXT,
+            status=PayloadStatus.COMPLETED,
+            processor=self.__class__
+        )
 
-            self._logger.info(f"레시피 정제 완료: {payload.data_type.name} → TEXT")
-            return result_payload
-
-        except Exception as e:
-            self._logger.error(f"레시피 정제 중 오류 발생: {str(e)}")
-            # 오류 상태의 페이로드 반환
-            error_payload = Payload(
-                buffer=f"레시피 정제 실패: {str(e)}".encode('utf-8'),
-                metadata={
-                    **payload.metadata,
-                    'error': str(e),
-                    'failed_processor': self.__class__.__name__
-                },
-                data_type=payload.data_type,
-                status=PayloadStatus.ERROR,
-                processor=self.__class__
-            )
-            return error_payload
+        self._logger.info(f"레시피 정제 완료: {payload.data_type.name} → TEXT")
+        return result_payload
 
     def is_supported(self, payload: Payload) -> bool:
         """
@@ -174,23 +158,18 @@ class GeminiRefiner(RefinerStrategy):
         Returns:
             str: 정제된 레시피 텍스트
         """
-        try:
-            # 오디오 데이터를 base64로 인코딩
-            audio_b64 = base64.b64encode(payload.buffer).decode('utf-8')
-            
-            # 프롬프트 생성
-            base_prompt = self._prompt_generator.get_audio_recipe_prompt()
-            context_prompt = self._prompt_generator.get_content_context_prompt(payload.metadata)
-            full_prompt = context_prompt + base_prompt + self._prompt_generator.get_recipe_prompt_format()
-            
-            # Gemini API 호출
-            response = self._call_gemini_with_audio(client, audio_b64, full_prompt)
-            
-            return self._extract_recipe_content(response)
-            
-        except Exception as e:
-            self._logger.error(f"오디오 데이터 처리 중 오류: {str(e)}")
-            raise RuntimeError(f"오디오 레시피 정제 실패: {str(e)}")
+        # 오디오 데이터를 base64로 인코딩
+        audio_b64 = base64.b64encode(payload.buffer).decode('utf-8')
+        
+        # 프롬프트 생성
+        base_prompt = self._prompt_generator.get_audio_recipe_prompt()
+        context_prompt = self._prompt_generator.get_content_context_prompt(payload.metadata)
+        full_prompt = context_prompt + base_prompt + self._prompt_generator.get_recipe_prompt_format()
+        
+        # Gemini API 호출
+        response = self._call_gemini_with_audio(client, audio_b64, full_prompt)
+        
+        return self._extract_recipe_content(response)
 
     def _process_text_data(self, client: GeminiClient, payload: Payload) -> str:
         """
