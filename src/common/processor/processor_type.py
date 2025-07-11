@@ -23,3 +23,4 @@ class ProcessorType(Enum):
     MONITOR = 5      # 모니터 (시스템 상태 감시)
     NOTIFIER = 6     # 알림기 (알림 전송)
     CLASSIFIER = 7   # 분류기 (데이터 분류)
+    REFINER = 8      # 정제기 (데이터 정제)
