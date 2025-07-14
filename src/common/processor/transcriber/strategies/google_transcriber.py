@@ -10,7 +10,7 @@ from typing import Tuple
 
 import speech_recognition as sr
 
-from ...common import get_audio_extension
+from ...common import get_ffmpeg_extension
 from ...types import DataType
 from ...types import Payload, PayloadStatus
 from ..transcriber_strategy import TranscriberStrategy
@@ -96,7 +96,7 @@ class GoogleTranscriber (TranscriberStrategy):
             bool: AUDIO 타입이고 WAV 확장자인 경우 True
         """
         return payload.data_type == DataType.AUDIO and \
-            get_audio_extension(payload.buffer) in self.available_input_ext
+            get_ffmpeg_extension(payload.buffer) in self.available_input_ext
 
 
     def _transcribe(self, audio: bytes) -> str:

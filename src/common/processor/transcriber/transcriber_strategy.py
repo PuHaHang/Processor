@@ -8,7 +8,7 @@ from abc import ABC
 from collections.abc import Generator
 import io
 
-from ..common import get_audio_extension, get_audio_duration
+from ..common import get_ffmpeg_extension, get_ffmpeg_duration
 from ..processor import Processor
 from ..processor_type import ProcessorType
 
@@ -41,7 +41,7 @@ class TranscriberStrategy (Processor, ABC):
         """
         max_bytes_per_chunk = self.max_bytes_per_chunk if self.max_bytes_per_chunk > 0 else 1024 ** 4
         # 오디오 포맷 감지
-        ext = get_audio_extension(audio)
+        ext = get_ffmpeg_extension(audio)
         
         # 최대 청크 크기에 따라 오디오 분할
         time_offset = 0.0
@@ -59,7 +59,7 @@ class TranscriberStrategy (Processor, ABC):
             yield buffer, time_offset
 
             # 다음 청크의 시간 오프셋 계산
-            time_offset += get_audio_duration(buffer.getvalue())
+            time_offset += get_ffmpeg_duration(buffer.getvalue())
             print(f"Chunk {audio_stream.tell()//max_bytes_per_chunk + 1} created, time offset: {time_offset:.2f}s")
 
         yield None, time_offset
