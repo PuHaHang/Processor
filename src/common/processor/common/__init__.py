@@ -1,12 +1,12 @@
-from .audio_info import (
-    get_audio_info,
-    get_audio_duration,
-    get_audio_format,
-    get_audio_extension,
-    get_audio_codec,
-    get_audio_bitrate,
-    get_audio_sample_rate,
-    get_audio_channels,
+from .ffmpeg_info import (
+    get_ffmpeg_info,
+    get_ffmpeg_duration,
+    get_ffmpeg_format,
+    get_ffmpeg_extension,
+    get_ffmpeg_codec,
+    get_ffmpeg_bitrate,
+    get_ffmpeg_sample_rate,
+    get_ffmpeg_channels,
 )
 from .srt_parser import (
     parse_srt,
@@ -16,15 +16,15 @@ from .srt_parser import (
 
 
 __all__ = [
-    # audio_info
-    "get_audio_info",
-    "get_audio_duration",
-    "get_audio_format",
-    "get_audio_extension",
-    "get_audio_codec",
-    "get_audio_bitrate",
-    "get_audio_sample_rate",
-    "get_audio_channels",
+    # ffmpeg_info
+    "get_ffmpeg_info",
+    "get_ffmpeg_duration",
+    "get_ffmpeg_format",
+    "get_ffmpeg_extension",
+    "get_ffmpeg_codec",
+    "get_ffmpeg_bitrate",
+    "get_ffmpeg_sample_rate",
+    "get_ffmpeg_channels",
 
     # srt_parser
     "parse_srt",

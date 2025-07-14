@@ -13,10 +13,10 @@ from unittest.mock import Mock, patch, MagicMock
 import subprocess
 
 from src.common.processor.common import (
-    get_audio_format,
-    get_audio_extension,
-    get_audio_duration,
-    get_audio_info,
+    get_ffmpeg_format,
+    get_ffmpeg_extension,
+    get_ffmpeg_duration,
+    get_ffmpeg_info,
 )
 
 
@@ -87,7 +87,7 @@ class TestAudioInfo:
         # MP3 시그니처 (ID3v2)
         with open(f"test/resources/mockdata/{target}", "rb") as f:
             data = f.read()
-        format_name = get_audio_format(data)
+        format_name = get_ffmpeg_format(data)
         assert format_name == expected
     
     
@@ -102,7 +102,7 @@ class TestAudioInfo:
         ffmpeg.Error가 발생하는 경우를 테스트합니다.
         """
         with pytest.raises(expected) as exc_info:
-            get_audio_format(data)
+            get_ffmpeg_format(data)
         assert exc_info.type == expected
     
     
@@ -130,7 +130,7 @@ class TestAudioInfo:
         """
         with open(f"test/resources/mockdata/{target}", "rb") as f:
             data = f.read()
-        extension = get_audio_extension(data)
+        extension = get_ffmpeg_extension(data)
         assert extension == expected
     
 
@@ -143,7 +143,7 @@ class TestAudioInfo:
             temp_audio_file: 임시 오디오 파일 경로
         """
         with pytest.raises(ffmpeg.Error) as exc_info:
-            get_audio_extension(b"test.txt")
+            get_ffmpeg_extension(b"test.txt")
         assert exc_info.type == ffmpeg.Error
     
     
@@ -163,7 +163,7 @@ class TestAudioInfo:
         mock_run.return_value = mock_result
         
         with pytest.raises(Exception) as exc_info:
-            get_audio_info(b"test.wav")
+            get_ffmpeg_info(b"test.wav")
         
         assert "ffprobe error" in str(exc_info.value)
     
@@ -183,5 +183,5 @@ class TestAudioInfo:
         """
         with open(f"test/resources/mockdata/{target}", "rb") as f:
             data = f.read()
-        duration = get_audio_duration(data)
+        duration = get_ffmpeg_duration(data)
         assert duration == expected

@@ -9,7 +9,7 @@ from typing import Tuple
 
 from pydub import AudioSegment
 
-from ...common import get_audio_extension
+from ...common import get_ffmpeg_extension
 from ..converter_strategy import ConverterStrategy
 from ...types import DataType, PayloadStatus, Payload
 
@@ -48,7 +48,7 @@ class AudioConverter (ConverterStrategy):
             ValueError: 유효하지 않은 출력 확장자인 경우
         """
         # 입력 확장자와 출력 확장자 추출
-        src_ext = get_audio_extension(payload.buffer)
+        src_ext = get_ffmpeg_extension(payload.buffer)
         dest_ext = opt.get("ext", self.default_output_ext)
 
         # 출력 확장자 유효성 검사
@@ -80,7 +80,7 @@ class AudioConverter (ConverterStrategy):
         """
         try:
             return self.data_flow[0] == payload.data_type and \
-                get_audio_extension(payload.buffer) in self.available_input_ext
+                get_ffmpeg_extension(payload.buffer) in self.available_input_ext
         except Exception:
             return False
 
@@ -109,7 +109,7 @@ class AudioConverter (ConverterStrategy):
         # 소스 바이너리 데이터를 AudioSegment로 로드
         src_buffer = io.BytesIO(src_audio)
 
-        src_buffer = AudioSegment.from_file(src_buffer, format=get_audio_extension(src_audio))
+        src_buffer = AudioSegment.from_file(src_buffer, format=get_ffmpeg_extension(src_audio))
         
         # 변환된 데이터를 바이너리로 내보내기
         dest_buffer = io.BytesIO()

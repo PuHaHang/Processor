@@ -10,7 +10,7 @@ from typing import Tuple
 
 from openai import OpenAI
 
-from ...common import get_audio_extension, srt_parser
+from ...common import get_ffmpeg_extension, srt_parser
 from ...types import DataType, Payload, PayloadStatus
 from ..transcriber_strategy import TranscriberStrategy
 
@@ -95,7 +95,7 @@ class OpenAITranscriber(TranscriberStrategy):
             bool: AUDIO 타입이고 지원하는 확장자인 경우 True
         """
         return self.data_flow[0] == payload.data_type and \
-            get_audio_extension(payload.buffer) in self.available_input_ext
+            get_ffmpeg_extension(payload.buffer) in self.available_input_ext
 
 
     def _transcribe_by_stream(self, audio: bytes) -> str:
