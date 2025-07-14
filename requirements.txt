@@ -44,3 +44,4 @@ msgpack
 transformers
 onnx
 onnxruntime
+google-genai
