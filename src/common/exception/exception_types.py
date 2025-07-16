@@ -69,6 +69,22 @@ class ExceptionType(Enum):
     PROCESSING_ERROR = ("processing_error")
     CONVERSION_ERROR = ("conversion_error")
     
+    # 미디어 처리
+    AUDIO_PROCESSING_ERROR = ("audio_processing_error")
+    VIDEO_PROCESSING_ERROR = ("video_processing_error") 
+    TRANSCRIPTION_ERROR = ("transcription_error")
+    
+    # 데이터 파싱/변환
+    JSON_PARSING_ERROR = ("json_parsing_error")
+    URL_PARSING_ERROR = ("url_parsing_error")
+    METADATA_EXTRACTION_ERROR = ("metadata_extraction_error")
+    
+    # 파이프라인/모델
+    PIPELINE_ERROR = ("pipeline_error")
+    MODEL_LOADING_ERROR = ("model_loading_error")
+    REFINING_ERROR = ("refining_error")
+    CONTENT_FILTERING_ERROR = ("content_filtering_error")
+    
     # FCM 관련
     FCM_ERROR = ("fcm_error")
     FCM_INVALID_TOKEN = ("fcm_invalid_token")
@@ -267,6 +283,46 @@ EXCEPTION_DEFAULTS: Dict[ExceptionType, Dict[str, Any]] = {
         'max_retries': 2
     },
     ExceptionType.CONVERSION_ERROR: {
+        'severity': ExceptionSeverity.MEDIUM,
+        'max_retries': 1
+    },
+    ExceptionType.AUDIO_PROCESSING_ERROR: {
+        'severity': ExceptionSeverity.MEDIUM,
+        'max_retries': 2
+    },
+    ExceptionType.VIDEO_PROCESSING_ERROR: {
+        'severity': ExceptionSeverity.MEDIUM,
+        'max_retries': 2
+    },
+    ExceptionType.TRANSCRIPTION_ERROR: {
+        'severity': ExceptionSeverity.MEDIUM,
+        'max_retries': 3
+    },
+    ExceptionType.JSON_PARSING_ERROR: {
+        'severity': ExceptionSeverity.LOW,
+        'max_retries': 1
+    },
+    ExceptionType.URL_PARSING_ERROR: {
+        'severity': ExceptionSeverity.LOW,
+        'max_retries': 0
+    },
+    ExceptionType.METADATA_EXTRACTION_ERROR: {
+        'severity': ExceptionSeverity.LOW,
+        'max_retries': 2
+    },
+    ExceptionType.PIPELINE_ERROR: {
+        'severity': ExceptionSeverity.HIGH,
+        'max_retries': 1
+    },
+    ExceptionType.MODEL_LOADING_ERROR: {
+        'severity': ExceptionSeverity.HIGH,
+        'max_retries': 2
+    },
+    ExceptionType.REFINING_ERROR: {
+        'severity': ExceptionSeverity.MEDIUM,
+        'max_retries': 2
+    },
+    ExceptionType.CONTENT_FILTERING_ERROR: {
         'severity': ExceptionSeverity.MEDIUM,
         'max_retries': 1
     },
