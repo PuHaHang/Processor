@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 F = TypeVar('F', bound=Callable[..., Any])
 T = TypeVar('T')
 
+
 class ExceptionHandler:
     """
     기본 예외 처리 클래스 데코레이터
@@ -108,7 +109,6 @@ class ExceptionHandler:
             module=func.__module__,
             function=func.__name__
         )
-        
         return context, exception
 
     async def handle_exception_async(self, func: Callable, exception: Exception, *args, **kwargs) -> Any:
@@ -132,7 +132,6 @@ class ExceptionHandler:
             context=context,
             handler_name=self.handler_name or f"{func.__name__}_handler"
         )
-        
         return custom_exception
 
     def __call__(self, func: F) -> F:
@@ -164,14 +163,8 @@ class ExceptionHandler:
                 # 예외 처리
                 context, processed_exception = self.handle_exception(func, e, *args, **kwargs)
                 
-                # 예외 처리 (비동기)
-                custom_exception = asyncio.create_task(
-                    exception_manager.handle_exception(
-                        processed_exception,
-                        context=context,
-                        handler_name=self.handler_name or f"{func.__name__}_handler"
-                    )
-                )
+                # 동기 함수에서는 간단한 로깅만 수행
+                logger.error(f"함수 {func.__name__}에서 예외 발생: {processed_exception}")
                 
                 # 커스텀 로깅
                 if self.log_level:
@@ -447,14 +440,8 @@ class DatabaseExceptionHandler(ExceptionHandler):
                 # 예외 처리
                 context, db_exception = self.handle_exception(func, e, *args, **kwargs)
                 
-                # 예외 처리 (비동기)
-                asyncio.create_task(
-                    exception_manager.handle_exception(
-                        db_exception,
-                        context=context,
-                        handler_name=self.handler_name or f"{func.__name__}_db_handler"
-                    )
-                )
+                # 동기 함수에서는 간단한 로깅만 수행
+                logger.error(f"데이터베이스 작업 실패 ({func.__name__}): {db_exception}")
                 
                 if self.reraise:
                     raise db_exception
@@ -562,14 +549,8 @@ class ValidationExceptionHandler(ExceptionHandler):
                 # 예외 처리
                 context, validation_exception = self.handle_exception(func, e, *args, **kwargs)
                 
-                # 예외 처리 (비동기)
-                asyncio.create_task(
-                    exception_manager.handle_exception(
-                        validation_exception,
-                        context=context,
-                        handler_name=self.handler_name or f"{func.__name__}_validation_handler"
-                    )
-                )
+                # 동기 함수에서는 간단한 로깅만 수행
+                logger.error(f"유효성 검증 실패 ({func.__name__}): {validation_exception}")
                 
                 if self.reraise:
                     raise validation_exception
@@ -605,7 +586,7 @@ class CircuitBreaker(ExceptionHandler):
     def __init__(
         self,
         failure_threshold: int = 5,
-        recovery_timeout: int = 60,
+        recovery_timeout: float = 60,
         expected_exception: Type[Exception] = Exception,
         monitor_performance: bool = True,
         **kwargs
@@ -659,7 +640,6 @@ class CircuitBreaker(ExceptionHandler):
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
             current_time = datetime.now()
-            
             # OPEN 상태에서 복구 시간 확인
             if self.state == 'OPEN':
                 if self.last_failure_time and (current_time - self.last_failure_time).total_seconds() > self.recovery_timeout:
@@ -701,7 +681,6 @@ class CircuitBreaker(ExceptionHandler):
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
             current_time = datetime.now()
-            
             # OPEN 상태에서 복구 시간 확인
             if self.state == 'OPEN':
                 if self.last_failure_time and (current_time - self.last_failure_time).total_seconds() > self.recovery_timeout:
