@@ -144,7 +144,8 @@ class TestExceptionHandler:
         # 검증
         assert custom_exception is not None
         # exception_manager가 처리한 예외인지 확인
-        assert hasattr(custom_exception, 'original_exception') or str(custom_exception) == str(test_exception)
+        assert hasattr(custom_exception, 'original_exception')
+        assert str(custom_exception) == str(test_exception)
     
     @pytest.mark.unit
     def test_decorator_with_successful_function(self, exception_handler):
