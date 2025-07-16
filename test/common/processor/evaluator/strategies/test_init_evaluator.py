@@ -40,6 +40,7 @@ with patch.multiple(
 ):
     from src.common.processor.evaluator.strategies.init_evaluator import InitEvaluator
     from src.common.processor.types import DataType, Payload, PayloadStatus
+    from src.common.exception import ValidationException
 
 
 class TestInitEvaluator:

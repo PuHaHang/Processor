@@ -1,8 +1,8 @@
 """
-Refiner 메인 클래스 테스트 모듈
+Refiner 테스트 모듈
 
-이 모듈은 Refiner 클래스의 핵심 기능을 검증하는 단위 테스트를 제공합니다.
-전략 선택, 정제 수행 등의 기본적인 기능을 테스트합니다.
+이 모듈은 Refiner 클래스의 기능을 검증하는 단위 테스트를 제공합니다.
+다양한 Refiner 전략들의 통합 동작을 테스트합니다.
 """
 
 import os
@@ -10,33 +10,39 @@ import pytest
 import sys
 from unittest.mock import Mock, patch
 
-# 테스트용 환경변수 설정
+# 환경변수와 모듈 Mock 설정
 os.environ['MODEL_PATH'] = 'test/resources/models'
-os.environ['GEMINI_API_KEY'] = 'test-gemini-key'
-os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+os.environ['ZEROSHOT_MODEL_NAME'] = 'test-model'
 
-# 모델 및 API 관련 모듈들을 mock으로 처리
-sys.modules['google.generativeai'] = Mock()
-sys.modules['openai'] = Mock()
+# 모델 관련 모듈들을 mock으로 처리
 sys.modules['onnx'] = Mock()
 sys.modules['onnxruntime'] = Mock()
 sys.modules['transformers'] = Mock()
+sys.modules['yt_dlp'] = Mock()
+sys.modules['yt_dlp.utils'] = Mock()
+sys.modules['google.generativeai'] = Mock()
 
 # Mock 객체들 설정
-mock_gemini_client = Mock()
-mock_openai_client = Mock()
+mock_yt_dlp = Mock()
+mock_yt_dlp.utils.DownloadError = Exception
+sys.modules['yt_dlp'].utils = mock_yt_dlp.utils
 
-# LLM 클라이언트들을 mock으로 처리
+# 모델 파일 검증 함수들을 mock으로 처리
+mock_validate_model = Mock()
+mock_load_tokenizer = Mock(return_value=Mock())
+mock_load_session = Mock(return_value=Mock())
+
+# ZeroShotClassifier의 메소드들을 패치
 with patch.multiple(
-    'src.common.processor.refiner.strategies.gemini_refiner',
-    GeminiClient=Mock(return_value=mock_gemini_client)
-), patch.multiple(
-    'src.common.processor.refiner.strategies.openai_refiner',
-    OpenAIClient=Mock(return_value=mock_openai_client)
+    'src.common.processor.evaluator._models.zero_shot_classifier.ZeroShotClassifier',
+    _validate_model=mock_validate_model,
+    _load_tokenizer=mock_load_tokenizer,
+    _load_session=mock_load_session
 ):
-    from src.common.processor.refiner import Refiner
+    from src.common.processor.refiner.refiner import Refiner
     from src.common.processor.refiner.strategies import GeminiRefiner, OpenAIRefiner
     from src.common.processor.types import DataType, Payload, PayloadStatus
+    from src.common.exception import ProcessingException
 
 
 class TestRefiner:
@@ -205,19 +211,26 @@ class TestRefiner:
         mock_process.assert_called_once_with(mock_text_payload, {})
     
     
-    # @pytest.mark.unit
-    # def test_process_with_unsupported_payload(self, refiner, mock_unsupported_payload):
-    #     """
-    #     지원되지 않는 페이로드에 대한 정제 시 예외 테스트
+    @pytest.mark.unit
+    @patch.object(
+        Refiner,
+        "_get_context",
+        return_value=None
+    )
+    def test_process_with_unsupported_payload_raises_error(self, mock_get_context, refiner, mock_unsupported_payload):
+        """
+        지원하지 않는 페이로드 처리 시 예외 테스트 (내부 전략 선택을 mock 처리)
         
-    #     Args:
-    #         refiner: Refiner 인스턴스
-    #         mock_unsupported_payload: 지원되지 않는 페이로드
-    #     """
-    #     with pytest.raises(ValueError) as exc_info:
-    #         refiner.process(mock_unsupported_payload)
+        Args:
+            mock_get_context: Refiner._get_context 메서드 mock
+            refiner: Refiner 인스턴스
+            mock_unsupported_payload: 지원하지 않는 페이로드
+        """
+        with pytest.raises(ProcessingException) as exc_info:
+            refiner.process(mock_unsupported_payload)
         
-    #     assert "No refiner strategy found for payload" in str(exc_info.value)
+        assert "지원되는 정제기를 찾을 수 없습니다" in str(exc_info.value)
+        mock_get_context.assert_called_once_with(mock_unsupported_payload)
     
     
     @pytest.mark.unit

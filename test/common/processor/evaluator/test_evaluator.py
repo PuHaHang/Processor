@@ -1,8 +1,8 @@
 """
-Evaluator 메인 클래스 테스트 모듈
+Evaluator 테스트 모듈
 
-이 모듈은 Evaluator 클래스의 핵심 기능을 검증하는 단위 테스트를 제공합니다.
-전략 선택, 평가 수행 등의 기본적인 기능을 테스트합니다.
+이 모듈은 Evaluator 클래스의 기능을 검증하는 단위 테스트를 제공합니다.
+모든 평가 전략들을 테스트하고 통합 평가 동작을 확인합니다.
 """
 
 import os
@@ -10,7 +10,7 @@ import pytest
 import sys
 from unittest.mock import Mock, patch
 
-# 테스트용 환경변수 설정
+# 환경변수와 모듈 Mock 설정
 os.environ['MODEL_PATH'] = 'test/resources/models'
 os.environ['ZEROSHOT_MODEL_NAME'] = 'test-model'
 
@@ -42,6 +42,7 @@ with patch.multiple(
     from src.common.processor.evaluator.strategies import YtDlpEvaluator
     from src.common.processor.types import DataType, Payload, PayloadStatus
     from src.common.processor.downloader.strategies.yt_dlp_downloader import YtDlpDownloader
+    from src.common.exception import ValidationException
 
 
 class TestEvaluator:

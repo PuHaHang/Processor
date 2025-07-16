@@ -15,6 +15,7 @@ from src.common.processor.types import DataType
 from src.common.processor.types import Payload
 from src.common.processor.types import PayloadStatus
 from src.common.processor.processor_type import ProcessorType
+from src.common.exception import ValidationException
 
 
 class TestAudioConverter:
@@ -158,10 +159,10 @@ class TestAudioConverter:
             converter: AudioConverter 인스턴스
             audio_buffer: 유효한 오디오 버퍼
         """
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationException) as exc_info:
             converter.process(audio_buffer, {"ext": "invalid"})
         
-        assert "Invalid input or output extension" in str(exc_info.value)
+        assert "지원되지 않는 출력 형식입니다" in str(exc_info.value)
 
     
     @pytest.mark.parametrize("audio_buffer", [
@@ -196,10 +197,10 @@ class TestAudioConverter:
         Args:
             converter: AudioConverter 인스턴스
         """
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationException) as exc_info:
             converter._convert_audio(b"audio_data", {})
         
-        assert "Invalid input or output extension" in str(exc_info.value)
+        assert "유효하지 않은 입력 확장자입니다" in str(exc_info.value)
 
 
     def test_get_processor_type(self, converter):

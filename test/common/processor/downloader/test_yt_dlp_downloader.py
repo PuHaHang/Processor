@@ -12,7 +12,8 @@ from src.common.processor.downloader.strategies import YtDlpDownloader
 from src.common.processor.types import DataType
 from src.common.processor.types import Payload
 from src.common.processor.types import PayloadStatus
-from src.common.processor.processor_type import ProcessorType 
+from src.common.processor.processor_type import ProcessorType
+from src.common.exception import ExternalServiceException
 
 
 class TestYtDlpDownloader:
