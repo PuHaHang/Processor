@@ -13,6 +13,16 @@ from ...common import get_ffmpeg_extension
 from ..converter_strategy import ConverterStrategy
 from ...types import DataType, PayloadStatus, Payload
 
+# 예외 핸들러 import
+from ....exception import (
+    ExceptionHandler,
+    ValidationExceptionHandler,
+    ExceptionType,
+    ExceptionSeverity,
+    ProcessingException,
+    ValidationException
+)
+
 
 class AudioConverter (ConverterStrategy):
     """
@@ -33,6 +43,14 @@ class AudioConverter (ConverterStrategy):
     default_output_ext: str = "mp3"
 
 
+    @ExceptionHandler(
+        exception_type=ExceptionType.AUDIO_PROCESSING_ERROR,
+        severity=ExceptionSeverity.MEDIUM,
+        reraise=True,
+        log_level="warning",
+        handler_name="audio_converter_process_handler"
+    )
+    @ValidationExceptionHandler(reraise=True)
     def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
         오디오 데이터를 지정된 형식으로 변환합니다.
@@ -52,9 +70,21 @@ class AudioConverter (ConverterStrategy):
         dest_ext = opt.get("ext", self.default_output_ext)
 
         # 출력 확장자 유효성 검사
-        if src_ext not in self.available_input_ext or \
-            dest_ext not in self.available_output_ext:
-            raise ValueError(f"Invalid input or output extension: {src_ext} or {dest_ext}")
+        if src_ext not in self.available_input_ext:
+            raise ValidationException(
+                message=f"지원되지 않는 입력 형식입니다: {src_ext}",
+                field_name="src_ext",
+                field_value=src_ext,
+                validation_rule="supported_format"
+            )
+            
+        if dest_ext not in self.available_output_ext:
+            raise ValidationException(
+                message=f"지원되지 않는 출력 형식입니다: {dest_ext}",
+                field_name="dest_ext", 
+                field_value=dest_ext,
+                validation_rule="supported_format"
+            )
 
         return Payload(
             buffer=self._convert_audio(payload.buffer, opt={
@@ -68,6 +98,7 @@ class AudioConverter (ConverterStrategy):
         )
 
 
+    @ValidationExceptionHandler(reraise=False, default_return=False)
     def is_supported(self, payload: Payload) -> bool:
         """
         버퍼 데이터가 이 변환기에서 지원되는지 확인합니다.
@@ -85,6 +116,14 @@ class AudioConverter (ConverterStrategy):
             return False
 
 
+    @ExceptionHandler(
+        exception_type=ExceptionType.AUDIO_PROCESSING_ERROR,
+        severity=ExceptionSeverity.MEDIUM,
+        reraise=True,
+        log_level="error",
+        handler_name="audio_conversion_handler"
+    )
+    @ValidationExceptionHandler(reraise=True)
     def _convert_audio(self, src_audio: bytes, opt: dict = {}) -> bytes:
         """
         오디오 바이너리 데이터를 다른 형식으로 변환합니다.
@@ -102,13 +141,46 @@ class AudioConverter (ConverterStrategy):
         # 필수 매개변수 검사
         src_ext = opt.get("src_ext", "")
         dest_ext = opt.get("dest_ext", "")
-        if src_ext not in self.available_input_ext or \
-            dest_ext not in self.available_output_ext:
-            raise ValueError(f"Invalid input or output extension: {src_ext} or {dest_ext}")
+        
+        if src_ext not in self.available_input_ext:
+            raise ValidationException(
+                message=f"유효하지 않은 입력 확장자입니다: {src_ext}",
+                field_name="src_ext",
+                field_value=src_ext,
+                validation_rule="supported_input_format"
+            )
+            
+        if dest_ext not in self.available_output_ext:
+            raise ValidationException(
+                message=f"유효하지 않은 출력 확장자입니다: {dest_ext}",
+                field_name="dest_ext",
+                field_value=dest_ext,
+                validation_rule="supported_output_format"
+            )
 
+        return self._perform_audio_conversion(src_audio, src_ext, dest_ext)
+
+    @ExceptionHandler(
+        exception_type=ExceptionType.AUDIO_PROCESSING_ERROR,
+        severity=ExceptionSeverity.MEDIUM,
+        reraise=True,
+        log_level="error",
+        handler_name="audio_conversion_core_handler"
+    )
+    def _perform_audio_conversion(self, src_audio: bytes, src_ext: str, dest_ext: str) -> bytes:
+        """
+        실제 오디오 변환을 수행하는 내부 메소드
+        
+        Args:
+            src_audio (bytes): 변환할 소스 오디오 바이너리 데이터
+            src_ext (str): 소스 확장자
+            dest_ext (str): 대상 확장자
+        
+        Returns:
+            bytes: 변환된 오디오 바이너리 데이터
+        """
         # 소스 바이너리 데이터를 AudioSegment로 로드
         src_buffer = io.BytesIO(src_audio)
-
         src_buffer = AudioSegment.from_file(src_buffer, format=get_ffmpeg_extension(src_audio))
         
         # 변환된 데이터를 바이너리로 내보내기
