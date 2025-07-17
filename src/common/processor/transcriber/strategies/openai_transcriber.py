@@ -126,11 +126,8 @@ class OpenAITranscriber(TranscriberStrategy):
         Returns:
             bool: AUDIO 타입이고 지원하는 확장자인 경우 True
         """
-        try:
-            return self.data_flow[0] == payload.data_type and \
-                get_ffmpeg_extension(payload.buffer) in self.available_input_ext
-        except Exception:
-            return False
+        return self.data_flow[0] == payload.data_type and \
+            get_ffmpeg_extension(payload.buffer) in self.available_input_ext
 
 
     @ExceptionHandler(
