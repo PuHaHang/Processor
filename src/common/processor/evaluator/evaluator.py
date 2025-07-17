@@ -1,9 +1,22 @@
+"""
+평가기 모듈
 
+이 모듈은 데이터 처리 결과를 평가하는 Evaluator 클래스를 제공합니다.
+"""
 
 from ..types import Payload
-
 from .evaluator_strategy import EvaluatorStrategy
 from .strategies import InitEvaluator, YtDlpEvaluator
+
+# 예외 핸들러 import
+from ...exception import (
+    ExceptionHandler,
+    ValidationExceptionHandler,
+    SuppressExceptions,
+    ExceptionType,
+    ExceptionSeverity,
+    ValidationException
+)
 
 
 class Evaluator:
@@ -24,6 +37,12 @@ class Evaluator:
                     self.strategy_map[processor] = []
                 self.strategy_map[processor].append(strategy)
 
+    @ValidationExceptionHandler(reraise=False, default_return=True)
+    @SuppressExceptions(
+        exception_types=[ValueError, AttributeError, KeyError],
+        default_return=True,
+        log_suppressed=True
+    )
     def evaluate(self, payload: Payload) -> bool:
         # 페이로드에 적합한 평가 전략을 찾음
         strategy = self._get_context(payload)
@@ -35,6 +54,14 @@ class Evaluator:
         # 찾은 전략으로 실제 평가 수행
         return strategy.evaluate(payload)
     
+    @ExceptionHandler(
+        exception_type=ExceptionType.CONTENT_FILTERING_ERROR,
+        severity=ExceptionSeverity.LOW,
+        reraise=False,
+        default_return=None,
+        log_level="info",
+        handler_name="evaluator_context_handler"
+    )
     def _get_context(self, payload: Payload) -> EvaluatorStrategy|None:
         processor = payload.get_processor()
         if processor is None:

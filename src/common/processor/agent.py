@@ -13,6 +13,17 @@ from .processor import Processor
 from .processor_type import ProcessorType
 from .transcriber import Transcriber
 
+# 예외 핸들러 import
+from ..exception import (
+    ExceptionHandler,
+    RetryOnException,
+    ValidationExceptionHandler,
+    ExceptionType,
+    ExceptionSeverity,
+    ProcessingException,
+    ValidationException
+)
+
 
 class Agent:
     """
@@ -38,6 +49,17 @@ class Agent:
     # 프로세서 처리 실패 시 최대 재시도 횟수
     max_retry: int = 3
 
+    @ExceptionHandler(
+        exception_type=ExceptionType.PIPELINE_ERROR,
+        severity=ExceptionSeverity.HIGH,
+        reraise=True,
+        log_level="error",
+        handler_name="agent_pipeline_handler"
+    )
+    @ValidationExceptionHandler(
+        reraise=True,
+        collect_errors=True
+    )
     def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
         버퍼 데이터를 처리 파이프라인을 통해 처리합니다.
@@ -65,6 +87,21 @@ class Agent:
             ... )
             >>> result = agent.process(url_dto)
         """
+        # 입력 유효성 검증
+        if not payload:
+            raise ValidationException(
+                message="페이로드가 None입니다",
+                field_name="payload",
+                validation_rule="required"
+            )
+            
+        if not payload.buffer:
+            raise ValidationException(
+                message="버퍼 데이터가 비어있습니다",
+                field_name="buffer",
+                validation_rule="not_empty"
+            )
+        
         # 파이프라인 구성
         pipeline = self._construct_pipeline(payload, opt)
         metadatas = []  # 각 단계의 메타데이터 수집
@@ -75,50 +112,97 @@ class Agent:
         for processor in pipeline:
             # 버퍼 데이터 유효성 검사
             if not payload:
-                raise ValueError("Payload is None")
+                raise ProcessingException(
+                    message="파이프라인 중간에 페이로드가 None이 되었습니다",
+                    processor_name=processor.get_processor_type().name
+                )
                 
             # 최대 재시도 횟수만큼 시도
             for retry_count in range(self.max_retry):
                 # 현재 프로세서가 버퍼 데이터를 지원하는지 확인
                 if processor.is_supported(payload):
-                    try:
-                        # 프로세서 실행 로그
-                        print(f"{processor.get_processor_type()} processing")
-                        
-                        # 실제 프로세서 실행
-                        payload = processor.process(payload)
-                        
-                        if not evaluator.evaluate(payload):
-                            raise ValueError("Invalid Content")
-                        
+                    # 프로세서 실행을 내부 메소드로 분리
+                    success, result_payload = self._execute_processor_with_retry(processor, payload, evaluator, retry_count)
+                    
+                    if success:
+                        payload = result_payload
                         # 처리 결과의 메타데이터 저장
                         metadatas.append(payload.metadata)
-                        
                         # 성공 시 재시도 루프 탈출
                         break
-                        
-                    except Exception as e:
-                        # 마지막 시도가 아니면 재시도
-                        if retry_count == self.max_retry - 1:
-                            # 최종 실패 시 예외 재발생
-                            raise e
-                        
+                    elif retry_count == self.max_retry - 1:
+                        # 최종 실패 시 예외 발생
+                        raise ProcessingException(
+                            message=f"프로세서 {processor.get_processor_type().name} 최종 실패",
+                            processor_name=processor.get_processor_type().name
+                        )
+                    else:
                         # 재시도 로그
                         print(f"Processor {processor.get_processor_type()} failed to process {payload.data_type}")
                         continue
                 else:
                     # 프로세서가 현재 데이터 타입을 지원하지 않는 경우
-                    raise ValueError(f"Processor {processor.get_processor_type()} is not supported for {payload.data_type}")
+                    raise ValidationException(
+                        message=f"프로세서 {processor.get_processor_type().name}가 {payload.data_type.name} 타입을 지원하지 않습니다",
+                        field_name="data_type",
+                        field_value=payload.data_type.name,
+                        validation_rule="processor_compatibility"
+                    )
 
             # 처리 상태 검증
             if payload.status != PayloadStatus.COMPLETED:
-                raise ValueError(f"Processor {processor.get_processor_type()} failed to process {payload.data_type}")
+                raise ProcessingException(
+                    message=f"프로세서 {processor.get_processor_type().name}가 데이터 처리를 완료하지 못했습니다",
+                    processor_name=processor.get_processor_type().name
+                )
         
         # 전체 파이프라인의 메타데이터 출력 (디버깅용)
         print("Pipeline metadata:", metadatas)
         return payload
 
+    @ExceptionHandler(
+        exception_type=ExceptionType.PROCESSING_ERROR,
+        severity=ExceptionSeverity.MEDIUM,
+        reraise=False,
+        default_return=(False, None),
+        log_level="warning",
+        handler_name="processor_execution_handler"
+    )
+    def _execute_processor_with_retry(self, processor: Processor, payload: Payload, evaluator: Evaluator, retry_count: int) -> tuple[bool, Payload]:
+        """
+        프로세서를 실행하고 평가를 수행하는 내부 메소드
+        
+        Args:
+            processor (Processor): 실행할 프로세서
+            payload (Payload): 처리할 페이로드
+            evaluator (Evaluator): 평가기
+            retry_count (int): 현재 재시도 횟수
+            
+        Returns:
+            tuple[bool, Payload]: (성공 여부, 처리된 페이로드 또는 None)
+        """
+        # 프로세서 실행 로그
+        print(f"{processor.get_processor_type()} processing")
+        
+        # 실제 프로세서 실행
+        processed_payload = processor.process(payload)
+        
+        if not evaluator.evaluate(processed_payload):
+            raise ProcessingException(
+                message="프로세서 출력이 유효하지 않습니다",
+                processor_name=processor.get_processor_type().name
+            )
+        
+        return True, processed_payload
+        
     
+    @ExceptionHandler(
+        exception_type=ExceptionType.PIPELINE_ERROR,
+        severity=ExceptionSeverity.MEDIUM,
+        reraise=True,
+        log_level="info",
+        handler_name="pipeline_construction_handler"
+    )
     def _construct_pipeline(self, payload: Payload, opt: dict = {}) -> list[Processor]:
         """
         처리 파이프라인을 구성합니다.
@@ -170,6 +254,7 @@ class Agent:
         return self.available_processors if hasattr(self, 'available_processors') else {}
 
 
+    @ValidationExceptionHandler(reraise=True)
     def set_max_retry(self, retry_count: int) -> None:
         """
         최대 재시도 횟수를 설정합니다.
@@ -181,10 +266,16 @@ class Agent:
             ValueError: retry_count가 1보다 작은 경우
         """
         if retry_count < 1:
-            raise ValueError("Retry count must be at least 1")
+            raise ValidationException(
+                message="재시도 횟수는 1 이상이어야 합니다",
+                field_name="retry_count",
+                field_value=retry_count,
+                validation_rule="min_value"
+            )
         self.max_retry = retry_count
 
 
+    @ValidationExceptionHandler(reraise=True)
     def validate_pipeline(self, pipeline: list[Processor]) -> bool:
         """
         파이프라인의 연결 유효성을 검증합니다.
@@ -198,7 +289,11 @@ class Agent:
             bool: 파이프라인이 유효하면 True, 아니면 False
         """
         if not pipeline:
-            return False
+            raise ValidationException(
+                message="파이프라인이 비어있습니다",
+                field_name="pipeline",
+                validation_rule="not_empty"
+            )
             
         # 연속된 프로세서 간의 데이터 플로우 호환성 검사
         for i in range(len(pipeline) - 1):

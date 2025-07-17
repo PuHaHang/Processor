@@ -10,6 +10,8 @@ import pytest
 import sys
 from unittest.mock import Mock, patch, MagicMock
 
+from src.common.exception import ValidationException, ProcessingException
+
 # 테스트용 환경변수 설정
 os.environ['OPENAI_API_KEY'] = 'test-openai-key'
 
@@ -215,8 +217,7 @@ class TestOpenAIRefiner:
             openai_refiner: OpenAIRefiner 인스턴스
             mock_video_payload: 지원되지 않는 비디오 페이로드
         """
-        # 테스트 실행 및 검증
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationException) as exc_info:
             openai_refiner.process(mock_video_payload)
         
         assert "지원하지 않는 데이터 타입입니다" in str(exc_info.value)
@@ -234,10 +235,15 @@ class TestOpenAIRefiner:
             mock_text_payload: 텍스트 페이로드
         """
         # Mock 설정 - 클라이언트 초기화 실패
-        mock_get_client.side_effect = RuntimeError("OpenAI 클라이언트 초기화 실패")
+        mock_get_client.side_effect = ValidationException(
+            message="OpenAI 클라이언트 초기화 실패",
+            field_name="client",
+            field_value=None,
+            validation_rule="openai_client_init_error"
+        )
         
         # 테스트 실행
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(ValidationException) as exc_info:
             openai_refiner.process(mock_text_payload)
         
         assert "OpenAI 클라이언트 초기화 실패" in str(exc_info.value)
@@ -357,10 +363,15 @@ class TestOpenAIRefiner:
         """
         # Mock 설정 - API 호출 실패
         mock_get_client.return_value = mock_openai_client
-        mock_call_openai.side_effect = RuntimeError("OpenAI API 호출 실패")
+        mock_call_openai.side_effect = ValidationException(
+            message="OpenAI API 호출 실패",
+            field_name="api_call",
+            field_value=None,
+            validation_rule="openai_api_call_error"
+        )
         
         # 테스트 실행
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(ValidationException) as exc_info:
             openai_refiner.process(mock_text_payload)
         
         assert "OpenAI API 호출 실패" in str(exc_info.value)
@@ -405,17 +416,19 @@ class TestOpenAIRefiner:
     @pytest.mark.unit
     @patch('src.common.processor.refiner.strategies.openai_refiner.OpenAIRefiner._call_openai_with_text')
     @patch('src.common.processor.refiner.strategies.openai_refiner.OpenAIRefiner._get_openai_client')
-    def test_process_with_malformed_json(self, mock_get_client, mock_call_openai, openai_refiner, mock_text_payload):
+    def test_process_with_malformed_json_raises_validation_exception(
+        self, mock_get_client, mock_call_openai, openai_refiner, mock_text_payload
+    ):
         """
-        형식이 잘못된 JSON 응답 처리 테스트
-        
+        잘못된 JSON이 입력될 경우 ValidationException이 발생하는지 테스트합니다.
+
         Args:
             mock_get_client: OpenAI 클라이언트 Mock
             mock_call_openai: OpenAI API 호출 Mock
             openai_refiner: OpenAIRefiner 인스턴스
             mock_text_payload: 텍스트 페이로드
         """
-        # Mock 설정 - 형식이 잘못된 JSON
+        # Mock 설정 - 잘못된 JSON 반환
         mock_get_client.return_value = mock_openai_client
         mock_call_openai.return_value = '''
         ```json
@@ -425,15 +438,14 @@ class TestOpenAIRefiner:
             // 잘못된 JSON 형식 (쉼표 누락, 주석 포함)
         ```
         '''
-        
-        # 테스트 실행
-        result = openai_refiner.process(mock_text_payload)
-        
-        # 검증
-        assert result.status == PayloadStatus.COMPLETED
-        response_data = result.buffer.decode('utf-8')
-        assert "레시피 정제 실패" in response_data  # JSON 파싱 실패로 에러 JSON 생성
-        assert "JSON 형식이 올바르지 않습니다" in response_data
+
+        # 테스트 실행 및 예외 검증
+        with pytest.raises(ValidationException) as exc_info:
+            openai_refiner.process(mock_text_payload)
+
+        # 예외 메시지 및 필드 검증
+        assert "레시피 정제 실패" in str(exc_info.value)
+        assert "잘못된 JSON 형식입니다." in str(exc_info.value)
     
     
     @pytest.mark.unit

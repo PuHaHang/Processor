@@ -1,18 +1,29 @@
 """
 OpenAI Whisper 전사기 모듈
 
-이 모듈은 OpenAI Whisper API를 사용하여
-오디오 데이터를 텍스트로 변환하는 전사기를 제공합니다.
-대용량 오디오 파일을 청킹하여 처리하고, SRT 형식의 자막을 생성합니다.
+이 모듈은 OpenAI Whisper API를 사용하여 오디오 데이터를 텍스트로 변환하는 전사기를 제공합니다.
 """
 
+import io
 from typing import Tuple
 
 from openai import OpenAI
 
-from ...common import get_ffmpeg_extension, srt_parser
+from ...common import get_ffmpeg_extension
 from ...types import DataType, Payload, PayloadStatus
 from ..transcriber_strategy import TranscriberStrategy
+from ...common import srt_parser
+
+# 예외 핸들러 import
+from ....exception import (
+    ExceptionHandler,
+    RetryOnException,
+    ValidationExceptionHandler,
+    ExceptionType,
+    ExceptionSeverity,
+    ExternalServiceException,
+    ValidationException
+)
 
 
 class OpenAITranscriber(TranscriberStrategy):
@@ -50,6 +61,21 @@ class OpenAITranscriber(TranscriberStrategy):
         """
         pass
 
+    @ExceptionHandler(
+        exception_type=ExceptionType.TRANSCRIPTION_ERROR,
+        severity=ExceptionSeverity.HIGH,
+        reraise=True,
+        log_level="error",
+        handler_name="openai_transcriber_process_handler"
+    )
+    @RetryOnException(
+        max_retries=3,
+        retry_delay=2.0,
+        backoff_factor=2.0,
+        exception_types=[ConnectionError, TimeoutError],
+        reraise_on_failure=True
+    )
+    @ValidationExceptionHandler(reraise=True)
     def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
         오디오 데이터를 OpenAI Whisper API로 전사하여 텍스트로 변환합니다.
@@ -68,7 +94,12 @@ class OpenAITranscriber(TranscriberStrategy):
         """
         # 지원되는 오디오 형식인지 확인
         if not self.is_supported(payload):
-            raise ValueError(f"Audio is not supported. Supported formats: {self.available_input_ext}")
+            raise ValidationException(
+                message=f"지원되지 않는 오디오 형식입니다. 지원 형식: {self.available_input_ext}",
+                field_name="audio_format",
+                field_value=get_ffmpeg_extension(payload.buffer),
+                validation_rule="supported_audio_format"
+            )
 
         # 오디오 전사 수행 및 결과 반환
         return Payload(
@@ -84,6 +115,7 @@ class OpenAITranscriber(TranscriberStrategy):
         )
 
     
+    @ValidationExceptionHandler(reraise=False, default_return=False)
     def is_supported(self, payload: Payload) -> bool:
         """
         버퍼 데이터가 이 전사기에서 지원되는지 확인합니다.
@@ -98,6 +130,20 @@ class OpenAITranscriber(TranscriberStrategy):
             get_ffmpeg_extension(payload.buffer) in self.available_input_ext
 
 
+    @ExceptionHandler(
+        exception_type=ExceptionType.TRANSCRIPTION_ERROR,
+        severity=ExceptionSeverity.HIGH,
+        reraise=True,
+        log_level="error",
+        handler_name="openai_whisper_api_handler"
+    )
+    @RetryOnException(
+        max_retries=3,
+        retry_delay=3.0,
+        backoff_factor=2.0,
+        exception_types=[ConnectionError, TimeoutError, Exception],
+        reraise_on_failure=True
+    )
     def _transcribe_by_stream(self, audio: bytes) -> str:
         """
         OpenAI Whisper API를 사용하여 오디오를 텍스트로 변환합니다.
@@ -118,44 +164,75 @@ class OpenAITranscriber(TranscriberStrategy):
         Raises:
             Exception: OpenAI API 호출 실패 시
         """
-        try:
-            # OpenAI 클라이언트 초기화
-            client = OpenAI()
-            
-            # 오디오 데이터를 청크로 분할
-            chunks = self._create_audio_stream(audio)
-            transcripts = []
+        return self._perform_whisper_transcription(audio)
 
-            # 각 청크에 대해 Whisper API 호출
-            idx = 0
-            while True:
-                chunk, time_offset = next(chunks)
-                if chunk is None:
-                    break
-                
-                try:
-                    # Whisper API 호출
-                    response = client.audio.transcriptions.create(
-                        model="whisper-1",  # 사용 가능한 모델: "whisper-1", "gpt-4o", "gpt-4o-mini"
-                        file=chunk,
-                        response_format="srt",  # text, srt, verbose_json, json, vtt
-                    )
-                    
-                    # 결과와 시간 오프셋 저장
-                    transcripts.append((idx, response, time_offset))
-                except Exception as e:
-                    # 개별 청크 처리 실패 시 예외 발생
-                    raise e
-                idx += 1
+    @ExceptionHandler(
+        exception_type=ExceptionType.TRANSCRIPTION_ERROR,
+        severity=ExceptionSeverity.HIGH,
+        reraise=True,
+        log_level="error",
+        handler_name="whisper_transcription_core_handler"
+    )
+    def _perform_whisper_transcription(self, audio: bytes) -> str:
+        """
+        실제 Whisper 전사를 수행하는 내부 메소드
+        
+        Args:
+            audio (bytes): 전사할 오디오 바이너리 데이터
+        
+        Returns:
+            str: 전사된 텍스트 (SRT 형식)
+        """
+        # OpenAI 클라이언트 초기화
+        client = OpenAI()
+        
+        # 오디오 데이터를 청크로 분할
+        chunks = self._create_audio_stream(audio)
+        transcripts = []
+
+        # 각 청크에 대해 Whisper API 호출
+        idx = 0
+        while True:
+            chunk, time_offset = next(chunks)
+            if chunk is None:
+                break
             
-            # 모든 청크의 SRT 결과를 병합
-            return srt_parser.merge_srt_chunks(
-                [
-                    (transcript[1], transcript[2])
-                    for transcript in sorted(transcripts, key=lambda x: x[0])
-                ]
-            )
-        except Exception as e:
-            # API 호출 실패 시 예외 발생
-            raise e
-            raise Exception(f"OpenAI Whisper transcription failed: {str(e)}")
+            # 청크 처리
+            response = self._process_whisper_chunk(client, chunk)
+            
+            # 결과와 시간 오프셋 저장
+            transcripts.append((idx, response, time_offset))
+            idx += 1
+        
+        # 모든 청크의 SRT 결과를 병합
+        return srt_parser.merge_srt_chunks(
+            [
+                (transcript[1], transcript[2])
+                for transcript in sorted(transcripts, key=lambda x: x[0])
+            ]
+        )
+
+    @ExceptionHandler(
+        exception_type=ExceptionType.TRANSCRIPTION_ERROR,
+        severity=ExceptionSeverity.HIGH,
+        reraise=True,
+        log_level="error",
+        handler_name="whisper_chunk_handler"
+    )
+    def _process_whisper_chunk(self, client: OpenAI, chunk: io.BytesIO) -> str:
+        """
+        개별 오디오 청크를 Whisper API로 전사하는 내부 메소드
+        
+        Args:
+            client (OpenAI): OpenAI 클라이언트
+            chunk (io.BytesIO): 전사할 오디오 청크
+            
+        Returns:
+            str: 전사 결과
+        """
+        # Whisper API 호출
+        return client.audio.transcriptions.create(
+            model="whisper-1",  # 사용 가능한 모델: "whisper-1", "gpt-4o", "gpt-4o-mini"
+            file=chunk,
+            response_format="srt",  # text, srt, verbose_json, json, vtt
+        )

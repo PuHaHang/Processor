@@ -10,6 +10,8 @@ import pytest
 import sys
 from unittest.mock import Mock, patch, MagicMock
 
+from src.common.exception import ValidationException, ProcessingException
+
 # 테스트용 환경변수 설정
 os.environ['GEMINI_API_KEY'] = 'test-gemini-key'
 
@@ -288,8 +290,7 @@ class TestGeminiRefiner:
             gemini_refiner: GeminiRefiner 인스턴스
             mock_unsupported_payload: 지원되지 않는 페이로드
         """
-        # 테스트 실행 및 검증
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationException) as exc_info:
             gemini_refiner.process(mock_unsupported_payload)
         
         assert "지원하지 않는 데이터 타입입니다" in str(exc_info.value)

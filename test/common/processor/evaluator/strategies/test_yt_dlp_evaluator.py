@@ -2,7 +2,7 @@
 YtDlpEvaluator 테스트 모듈
 
 이 모듈은 YtDlpEvaluator 클래스의 기능을 검증하는 단위 테스트를 제공합니다.
-YouTube 다운로더 전용 평가기의 지원 여부 확인, 평가 수행 등의 기능을 테스트합니다.
+YtDlpDownloader 결과를 평가하는 기능을 테스트합니다.
 """
 
 import os
@@ -10,7 +10,7 @@ import pytest
 import sys
 from unittest.mock import Mock, patch
 
-# 테스트용 환경변수 설정
+# 환경변수와 모듈 Mock 설정
 os.environ['MODEL_PATH'] = 'test/resources/models'
 os.environ['ZEROSHOT_MODEL_NAME'] = 'test-model'
 
@@ -38,9 +38,10 @@ with patch.multiple(
     _load_tokenizer=mock_load_tokenizer,
     _load_session=mock_load_session
 ):
-    from src.common.processor.evaluator.strategies import YtDlpEvaluator
+    from src.common.processor.evaluator.strategies.yt_dlp_evaluator import YtDlpEvaluator
     from src.common.processor.types import DataType, Payload, PayloadStatus
     from src.common.processor.downloader.strategies.yt_dlp_downloader import YtDlpDownloader
+    from src.common.exception import ValidationException
 
 
 class TestYtDlpEvaluator:

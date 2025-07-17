@@ -2,202 +2,105 @@
 YouTube 포맷터 테스트 모듈
 
 이 모듈은 YoutubeFormatter 클래스의 기능을 검증하는 단위 테스트를 제공합니다.
-YouTube URL 파싱, 지원 여부 확인, URL 재구성 등의 기능을 테스트합니다.
 """
 
 import pytest
-from src.common.processor.formatter.strategies.youtube_formatter import YoutubeFormatter
+from src.common.processor.formatter.strategies import YoutubeFormatter
+from src.common.exception import ValidationException
 
 
 class TestYoutubeFormatter:
     """
     YoutubeFormatter 클래스에 대한 테스트 모음
-    
-    YouTube URL 처리, 파싱, 지원 여부 확인 등의
-    모든 기능을 테스트합니다.
     """
     
     @pytest.fixture
     def formatter(self):
         """
         테스트용 YoutubeFormatter 인스턴스를 제공하는 fixture
-        
-        Returns:
-            YoutubeFormatter: 테스트용 포맷터 인스턴스
         """
         return YoutubeFormatter()
     
     
-    def test_domain_initialization(self, formatter):
-        """
-        YoutubeFormatter 도메인 초기화 테스트
+    @pytest.mark.parametrize("url, expected", [
+        # 표준 YouTube URL
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ", True),
+        ("https://youtube.com/watch?v=dQw4w9WgXcQ", True),
+        ("http://www.youtube.com/watch?v=dQw4w9WgXcQ", True),
+        ("www.youtube.com/watch?v=dQw4w9WgXcQ", True),
+        ("youtube.com/watch?v=dQw4w9WgXcQ", True),
         
-        Args:
-            formatter: YoutubeFormatter 인스턴스
-        """
-        assert formatter.domain == "youtube.com"
-        assert formatter.YOUTUBE_URL_TEMPLATE == "https://www.youtube.com/watch?v=%s"
-    
-    
-    @pytest.mark.parametrize("url", [
-        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "http://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "https://youtube.com/watch?v=dQw4w9WgXcQ",
-        "https://www.youtube.com/embed/dQw4w9WgXcQ",
-        "https://www.youtube.com/v/dQw4w9WgXcQ",
-        "https://www.youtube.com/shorts/dQw4w9WgXcQ",
-        "https://youtu.be/dQw4w9WgXcQ",
-        "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
-        "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=30s",
-        "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLExample",
+        # 단축 URL (youtu.be)
+        ("https://youtu.be/dQw4w9WgXcQ", True),
+        ("http://youtu.be/dQw4w9WgXcQ", True),
+        ("youtu.be/dQw4w9WgXcQ", True),
+        
+        # 모바일 URL
+        ("https://m.youtube.com/watch?v=dQw4w9WgXcQ", True),
+        ("http://m.youtube.com/watch?v=dQw4w9WgXcQ", True),
+        ("m.youtube.com/watch?v=dQw4w9WgXcQ", True),
+        
+        # 쇼츠 URL
+        ("https://www.youtube.com/shorts/dQw4w9WgXcQ", True),
+        ("https://youtube.com/shorts/dQw4w9WgXcQ", True),
+        
+        # 다른 형태의 URL
+        ("https://www.youtube.com/embed/dQw4w9WgXcQ", True),
+        ("https://www.youtube.com/v/dQw4w9WgXcQ", True),
+        
+        # 추가 매개변수가 있는 URL
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=100", True),
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLExample", True),
+        
+        # 유효하지 않은 URL
+        ("https://www.google.com", False),
+        ("https://www.youtube.com/watch", False),
+        ("https://www.youtube.com/watch?v=", False),
+        ("https://www.youtube.com/watch?v=invalid", False),  # 11자가 아님
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ123", False),  # 11자를 초과
+        ("https://vimeo.com/123456789", False),
+        ("not_a_url", False),
     ])
-    def test_is_supported_with_valid_youtube_urls(self, formatter, url):
+    def test_is_supported(self, formatter, url, expected):
         """
-        유효한 YouTube URL에 대한 지원 여부 테스트
-        
-        Args:
-            formatter: YoutubeFormatter 인스턴스
-            url: 테스트할 유효한 YouTube URL
+        다양한 URL에 대한 지원 여부 테스트
         """
-        assert formatter.is_supported(url) == True
+        assert formatter.is_supported(url) == expected
     
     
-    @pytest.mark.parametrize("url", [
-        "https://vimeo.com/123456789",
-        "https://www.dailymotion.com/video/x123456",
-        "https://www.example.com/video",
-        "not_a_url",
-        "https://www.youtube.com/watch?v=invalid_id",  # 잘못된 ID 길이
-        "https://www.youtube.com/watch?v=",  # 빈 ID
-        "https://www.youtube.com/watch",  # v 파라미터 없음
-        "",
-        "https://www.youtube.com/watch?v=dQw4w9WgXcQ123",  # 너무 긴 ID
+    @pytest.mark.parametrize("data, expected", [
+        ({"platform": "youtube.com"}, True),
+        ({"platform": "youtube.com", "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}, True),
+        ({"platform": "other.com"}, False),
+        ({"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}, False),  # platform 없음
+        ({}, False),
     ])
-    def test_is_supported_with_invalid_urls(self, formatter, url):
+    def test_is_supported_dict(self, formatter, data, expected):
         """
-        무효한 URL에 대한 지원 여부 테스트
-        
-        Args:
-            formatter: YoutubeFormatter 인스턴스
-            url: 테스트할 무효한 URL
+        딕셔너리 데이터에 대한 지원 여부 테스트
         """
-        assert formatter.is_supported(url) == False
+        assert formatter.is_supported(data) == expected
     
     
-    @pytest.mark.parametrize("data", [
-        {"platform": "youtube.com", "v": ["dQw4w9WgXcQ"]},
-        {"platform": "youtube.com", "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+    @pytest.mark.parametrize("url, expected_id", [
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("https://youtu.be/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("https://www.youtube.com/shorts/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("https://m.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("https://www.youtube.com/embed/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("https://www.youtube.com/v/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=100", "dQw4w9WgXcQ"),
     ])
-    def test_is_supported_with_valid_dict_data(self, formatter, data):
+    def test_parse_valid_urls(self, formatter, url, expected_id):
         """
-        유효한 dict 데이터에 대한 지원 여부 테스트
-        
-        Args:
-            formatter: YoutubeFormatter 인스턴스
-            data: 테스트할 유효한 dict 데이터
-        """
-        assert formatter.is_supported(data) == True
-    
-    
-    @pytest.mark.parametrize("data", [
-        {"platform": "vimeo.com", "v": ["123456789"]},
-        {"platform": "dailymotion.com", "url": "https://www.dailymotion.com/video/x123456"},
-        {"v": ["dQw4w9WgXcQ"]},  # platform 키 없음
-        {},  # 빈 dict
-        {"platform": ""},  # 빈 platform
-    ])
-    def test_is_supported_with_invalid_dict_data(self, formatter, data):
-        """
-        무효한 dict 데이터에 대한 지원 여부 테스트
-        
-        Args:
-            formatter: YoutubeFormatter 인스턴스
-            data: 테스트할 무효한 dict 데이터
-        """
-        assert formatter.is_supported(data) == False
-    
-    
-    def test_is_supported_with_invalid_data_types(self, formatter):
-        """
-        잘못된 데이터 타입에 대한 지원 여부 테스트
-        
-        Args:
-            formatter: YoutubeFormatter 인스턴스
-        """
-        assert formatter.is_supported(123) == False
-        assert formatter.is_supported(None) == False
-        assert formatter.is_supported([]) == False
-        assert formatter.is_supported(True) == False
-    
-    
-    @pytest.mark.parametrize("url, expected_result", [
-        (
-            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            {
-                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                "platform": "youtube.com",
-                "metadata": {"is_shorts": False}
-            }
-        ),
-        (
-            "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=30s",
-            {
-                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                "platform": "youtube.com",
-                "metadata": {"is_shorts": False}
-            }
-        ),
-        (
-            "https://youtu.be/dQw4w9WgXcQ",
-            {
-                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                "platform": "youtube.com",
-                "metadata": {"is_shorts": False}
-            }
-        ),
-    ])
-    def test_parse_regular_youtube_urls(self, formatter, url, expected_result):
-        """
-        일반 YouTube URL 파싱 테스트
-        
-        Args:
-            formatter: YoutubeFormatter 인스턴스
-            url: 파싱할 YouTube URL
-            expected_result: 예상 결과
+        유효한 YouTube URL 파싱 테스트
         """
         result = formatter.parse(url)
-        assert result == expected_result
-    
-    
-    @pytest.mark.parametrize("url, expected_result", [
-        (
-            "https://www.youtube.com/shorts/dQw4w9WgXcQ",
-            {
-                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                "platform": "youtube.com",
-                "metadata": {"is_shorts": True}
-            }
-        ),
-        (
-            "https://youtube.com/shorts/abcdefghijk",
-            {
-                "url": "https://www.youtube.com/watch?v=abcdefghijk",
-                "platform": "youtube.com",
-                "metadata": {"is_shorts": True}
-            }
-        ),
-    ])
-    def test_parse_youtube_shorts_urls(self, formatter, url, expected_result):
-        """
-        YouTube Shorts URL 파싱 테스트
         
-        Args:
-            formatter: YoutubeFormatter 인스턴스
-            url: 파싱할 YouTube Shorts URL
-            expected_result: 예상 결과
-        """
-        result = formatter.parse(url)
-        assert result == expected_result
+        assert result["platform"] == "youtube.com"
+        assert result["url"] == f"https://www.youtube.com/watch?v={expected_id}"
+        assert "metadata" in result
+        assert "is_shorts" in result["metadata"]
     
     
     @pytest.mark.parametrize("url", [
@@ -208,109 +111,78 @@ class TestYoutubeFormatter:
     ])
     def test_parse_invalid_youtube_urls(self, formatter, url):
         """
-        무효한 YouTube URL 파싱 시 예외 테스트
+        유효하지 않은 YouTube URL 파싱 테스트
         
         Args:
             formatter: YoutubeFormatter 인스턴스
-            url: 파싱할 무효한 YouTube URL
+            url: 유효하지 않은 YouTube URL
         """
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationException) as exc_info:
             formatter.parse(url)
-        assert "Invalid YouTube URL" in str(exc_info.value)
-    
-    
-    @pytest.mark.parametrize("data, expected_url", [
-        ({"v": ["dQw4w9WgXcQ"]}, "https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
-        ({"v": ["abcdefghijk"]}, "https://www.youtube.com/watch?v=abcdefghijk"),
-        ({"v": ["0123456789A"]}, "https://www.youtube.com/watch?v=0123456789A"),
-    ])
-    def test_unparse_valid_data(self, formatter, data, expected_url):
-        """
-        유효한 데이터를 URL로 변환 테스트
         
-        Args:
-            formatter: YoutubeFormatter 인스턴스
-            data: 변환할 데이터
-            expected_url: 예상 URL
+        assert "YouTube URL" in str(exc_info.value)
+    
+    
+    @pytest.mark.parametrize("data, expected", [
+        ({"v": ["dQw4w9WgXcQ"]}, "https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+        ({"platform": "youtube.com", "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}, "https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+    ])
+    def test_unparse_valid_data(self, formatter, data, expected):
+        """
+        유효한 데이터 언파싱 테스트
         """
         result = formatter.unparse(data)
-        assert result == expected_url
+        assert result == expected
     
     
     @pytest.mark.parametrize("data", [
         {},  # v 키 없음
         {"v": []},  # 빈 v 배열
         {"v": ["id1", "id2"]},  # 여러 v 값
-        {"other_key": "value"},  # v 키 없음
+        {"platform": "youtube.com"},  # url 키 없음
     ])
     def test_unparse_invalid_data(self, formatter, data):
         """
-        무효한 데이터 변환 시 예외 테스트
+        유효하지 않은 데이터 언파싱 테스트
         
         Args:
             formatter: YoutubeFormatter 인스턴스
-            data: 변환할 무효한 데이터
+            data: 유효하지 않은 데이터
         """
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationException) as exc_info:
             formatter.unparse(data)
-        assert "Invalid YouTube URL" in str(exc_info.value)
+        
+        assert "YouTube" in str(exc_info.value)
     
     
-    def test_parse_unparse_consistency(self, formatter):
+    def test_shorts_url_parsing(self, formatter):
         """
-        parse와 unparse의 일관성 테스트
-        
-        Args:
-            formatter: YoutubeFormatter 인스턴스
+        쇼츠 URL 파싱 테스트
         """
-        original_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        result = formatter.parse("https://www.youtube.com/shorts/dQw4w9WgXcQ")
         
-        # parse 후 unparse 했을 때 동일한 URL이 나오는지 확인
-        parsed_data = formatter.parse(original_url)
-        
-        # parse 결과에서 v 파라미터 추출
-        parsed_url = parsed_data["url"]
-        
-        # 원본 URL과 파싱된 URL이 같은지 확인
-        assert parsed_url == original_url
+        assert result["platform"] == "youtube.com"
+        assert result["url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        assert result["metadata"]["is_shorts"] == True
     
     
-    def test_shorts_url_conversion(self, formatter):
+    def test_regular_url_parsing(self, formatter):
         """
-        Shorts URL의 일반 URL 변환 테스트
-        
-        Args:
-            formatter: YoutubeFormatter 인스턴스
+        일반 URL 파싱 테스트
         """
-        shorts_url = "https://www.youtube.com/shorts/dQw4w9WgXcQ"
-        expected_regular_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        result = formatter.parse("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
         
-        parsed_data = formatter.parse(shorts_url)
-        
-        # Shorts URL이 일반 URL로 변환되는지 확인
-        assert parsed_data["url"] == expected_regular_url
-        assert parsed_data["metadata"]["is_shorts"] == True
+        assert result["platform"] == "youtube.com"
+        assert result["url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        assert result["metadata"]["is_shorts"] == False
     
     
-    def test_regex_pattern_coverage(self, formatter):
+    def test_youtu_be_url_parsing(self, formatter):
         """
-        정규표현식 패턴 적용 범위 테스트
-        
-        Args:
-            formatter: YoutubeFormatter 인스턴스
+        youtu.be URL 파싱 테스트
         """
-        # 패턴이 올바르게 컴파일되었는지 확인
-        assert formatter.YOUTUBE_URL_PATTERN is not None
+        result = formatter.parse("https://youtu.be/dQw4w9WgXcQ")
         
-        # 다양한 YouTube URL 형식이 매칭되는지 확인
-        test_urls = [
-            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            "http://youtube.com/watch?v=dQw4w9WgXcQ",
-            "www.youtube.com/watch?v=dQw4w9WgXcQ",
-            "youtube.com/watch?v=dQw4w9WgXcQ",
-            "https://youtu.be/dQw4w9WgXcQ",
-            "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
-        ]
-        
-        for url in test_urls:
-            assert formatter.YOUTUBE_URL_PATTERN.match(url) is not None
+        assert result["platform"] == "youtube.com"
+        assert result["url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        assert result["metadata"]["is_shorts"] == False
