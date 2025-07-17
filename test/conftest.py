@@ -8,9 +8,32 @@ fixture들을 정의합니다.
 import pytest
 import logging
 import os
+import sys
 import asyncio
 from unittest.mock import Mock, MagicMock
 from typing import Dict, Any, List
+
+# ZeroShotClassifier와 BertBaseClassifier 클래스 Mock 설정
+def create_mock_classifier(*args, **kwargs):
+    """Mock Classifier 생성"""
+    mock_classifier = Mock()
+    mock_classifier.evaluate = Mock(return_value=True)
+    mock_classifier._validate_model = Mock()
+    mock_classifier._load_tokenizer = Mock(return_value=Mock())
+    mock_classifier._load_session = Mock(return_value=Mock())
+    mock_classifier._classify = Mock(return_value={"entailment": 0.8, "neutral": 0.1, "contradiction": 0.1})
+    mock_classifier._get_chunks = Mock(return_value=["test chunk"])
+    return mock_classifier
+
+# ZeroShotClassifier 모듈 완전 대체
+mock_zero_shot_module = Mock()
+mock_zero_shot_module.ZeroShotClassifier = Mock(side_effect=create_mock_classifier)
+sys.modules['src.common.processor.evaluator._models.zero_shot_classifier'] = mock_zero_shot_module
+
+# BertBaseClassifier 모듈 완전 대체
+mock_bert_base_module = Mock()
+mock_bert_base_module.BertBaseClassifier = Mock(side_effect=create_mock_classifier)
+sys.modules['src.common.processor.evaluator._models.bert_base_classifier'] = mock_bert_base_module
 
 # 테스트 환경 설정
 @pytest.fixture(scope="session", autouse=True)
