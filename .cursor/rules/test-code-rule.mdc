@@ -5,6 +5,10 @@ alwaysApply: false
 
 # Python Test Code RuleSet with pytest
 
+**Use "pytest" command for checking the code after whatever is changed in test directory.**
+**Use ./venv virtual environment for test the code.**
+**Conform the test directory rule**
+
 ## 📋 Application Scenarios
 
 This ruleset applies to the following situations:
@@ -162,19 +166,25 @@ Mock Utilization
 
 ## 🔧 Specific Implementation Rules
 
-### 1. File and Directory Structure
+### 1. File and Directory Structure (strict)
 ```
 test/
 ├── conftest.py                    # Global fixture definitions
 ├── __init__.py                   # Test module initialization
-├── unit/                         # Unit tests
-│   ├── test_module_name.py       # Module-specific tests
-│   └── test_class_name.py        # Class-specific tests
-├── integration/                  # Integration tests
-│   └── test_integration_scenario.py
-└── fixtures/                     # Common fixtures
-    ├── __init__.py
-    └── common_fixtures.py
+├── common/                         # Unit tests
+│   ├── __init__.py
+│   └── common_fixtures.py
+└── domain/
+    ├── inner_domain/
+    │   ├── __init__.py
+    │   ├── conftest.py
+    │   └── test_inner_something.py
+    ├── test_integration_scenario.py # Integration tests
+    ├── test_module_name.py       # Module-specific tests
+    └── test_class_name.py        # Class-specific tests
+
+requirements-dev.txt
+pytest.ini
 ```
 
 ### 2. Naming Conventions
