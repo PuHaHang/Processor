@@ -7,7 +7,7 @@ alwaysApply: false
 
 **Use "pytest" command for checking the code after whatever is changed in test directory.**
 **Use ./venv virtual environment for test the code.**
-**Conform the test directory rule
+**Conform the test directory rule**
 
 ## 📋 Application Scenarios
 
