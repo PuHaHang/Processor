@@ -36,12 +36,14 @@ class RecipeRefinerPrompt:
     {
       "index": 1,
       "name": "[재료명]",
-      "amount": "[분량]"
+      "amount": "[분량]",
+      "unit": "[단위, 없으면 비워둠]"
     },
     {
       "index": 2,
       "name": "[재료명]",
-      "amount": "[분량]"
+      "amount": "[분량]",
+      "unit": "[단위, 없으면 비워둠]"
     }
   ],
   "steps": [
@@ -68,6 +70,7 @@ class RecipeRefinerPrompt:
 조리 시간은 초 단위로 표시해주세요.
 언급된 재료는 재료 목록에 포함시키며 조리 과정에서는 재료와 분량을 {재료 순번}으로만 표시해주세요.
 조리 과정에서 표시된 재료 순번은 재료 목록에 있는 재료 순번과 동일해야 하며 {1}, {2}, {3} 형식으로 표시해주세요.
+단위는 단위 표시 외에는 작성하지 마세요. 단위가 없는 경우 비워두세요.
 """
 
     @staticmethod
@@ -90,12 +93,14 @@ class RecipeRefinerPrompt:
     {
       "index": 1,
       "name": "[재료명]",
-      "amount": "[분량]"
+      "amount": "[분량]",
+      "unit": "[단위, 없으면 비워둠]"
     },
     {
       "index": 2,
       "name": "[재료명]",
-      "amount": "[분량]"
+      "amount": "[분량]",
+      "unit": "[단위, 없으면 비워둠]"
     }
   ],
   "steps": [
@@ -123,6 +128,7 @@ class RecipeRefinerPrompt:
 조리 시간은 초 단위로 표시해주세요.
 언급된 재료는 재료 목록에 포함시키며 조리 과정에서는 재료와 분량을 {재료 순번}으로만 표시해주세요.
 조리 과정에서 표시된 재료 순번은 재료 목록에 있는 재료 순번과 동일해야 하며 {1}, {2}, {3} 형식으로 표시해주세요.
+단위는 단위 표시 외에는 작성하지 마세요. 단위가 없는 경우 비워두세요.
 """
 
     @staticmethod
@@ -145,12 +151,14 @@ class RecipeRefinerPrompt:
     {
       "index": 1,
       "name": "[재료명]",
-      "amount": "[분량]"
+      "amount": "[분량]",
+      "unit": "[단위, 없으면 비워둠]"
     },
     {
       "index": 2,
       "name": "[재료명]",
-      "amount": "[분량]"
+      "amount": "[분량]",
+      "unit": "[단위, 없으면 비워둠]"
     }
   ],
   "steps": [
@@ -178,6 +186,7 @@ class RecipeRefinerPrompt:
 조리 시간은 초 단위로 표시해주세요.
 언급된 재료는 재료 목록에 포함시키며 조리 과정에서는 재료와 분량을 {재료 순번}으로만 표시해주세요.
 조리 과정에서 표시된 재료 순번은 재료 목록에 있는 재료 순번과 동일해야 하며 {1}, {2}, {3} 형식으로 표시해주세요.
+단위는 단위 표시 외에는 작성하지 마세요. 단위가 없는 경우 비워두세요.
 """
 
     @staticmethod
@@ -224,77 +233,92 @@ class RecipeRefinerPrompt:
     {
       "index": 1,
       "name": "소고기 안심 (필레)",
-      "amount": "1.2kg"
+      "amount": "1.2",
+      "unit": "kg"
     },
     {
       "index": 2,
       "name": "소금",
-      "amount": "약간"
+      "amount": "적당히",
+      "unit": ""
     },
     {
       "index": 3,
       "name": "후추",
-      "amount": "약간"
+      "amount": "적당히",
+      "unit": ""
     },
     {
       "index": 4,
       "name": "올리브 오일",
-      "amount": "2큰술"
+      "amount": "2",
+      "unit": "큰술"
     },
     {
       "index": 5,
       "name": "잉글리시 머스타드",
-      "amount": "2-3큰술"
+      "amount": "2",
+      "unit": "큰술"
     },
     {
       "index": 6,
       "name": "밤버섯 (또는 양송이버섯)",
-      "amount": "700g"
+      "amount": "700",
+      "unit": "g"
     },
     {
       "index": 7,
       "name": "마늘",
-      "amount": "1쪽 (다진 것)"
+      "amount": "1",
+      "unit": "쪽"
     },
     {
       "index": 8,
       "name": "소금",
-      "amount": "약간"
+      "amount": "1",
+      "unit": "큰술"
     },
     {
       "index": 9,
       "name": "후추",
-      "amount": "약간"
+      "amount": "1",
+      "unit": "큰술"
     },
     {
       "index": 10,
       "name": "삶은 밤",
-      "amount": "200g (껍질 벗겨 다진 것)"
+      "amount": "200",
+      "unit": "g"
     },
     {
       "index": 11,
       "name": "신선한 타임",
-      "amount": "1작은술 (또는 1-2줄기)"
+      "amount": "1",
+      "unit": "작은술"
     },
     {
       "index": 12,
       "name": "프로슈토 (파르마 햄)",
-      "amount": "10-12장"
+      "amount": "10",
+      "unit": "장"
     },
     {
       "index": 13,
       "name": "퍼프 페이스트리 시트",
-      "amount": "1장 (약 500g)"
+      "amount": "1",
+      "unit": "장"
     },
     {
       "index": 14,
       "name": "달걀 노른자",
-      "amount": "1개"
+      "amount": "1",
+      "unit": "개"
     },
     {
       "index": 15,
       "name": "굵은 소금",
-      "amount": "약간 (장식용)"
+      "amount": "1",
+      "unit": "큰술"
     }
   ],
   "steps": [
