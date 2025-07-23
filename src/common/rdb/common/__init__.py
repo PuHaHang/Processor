@@ -42,7 +42,7 @@ from .models import (
     # Recipe 도메인 모델
     RecipeBase,
     RecipeBaseContent,
-    RecipeBaseStatus,
+    RecipeBaseState,
     Ingredient,
     Recipe,
     
@@ -87,7 +87,7 @@ __all__ = [
     # Recipe 도메인 모델
     "RecipeBase",
     "RecipeBaseContent",
-    "RecipeBaseStatus",
+    "RecipeBaseState",
     "Ingredient",
     "Recipe",
     

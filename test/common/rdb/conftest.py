@@ -15,7 +15,7 @@
 
 # from src.common.rdb.common.database import DatabaseManager, Base
 # from src.common.rdb.domain.user.models import User, UserProfile, UserBilling, UserAlert, UserRole, UserProvider, UserRegion, UserBillingType
-# from src.common.rdb.domain.recipe.models import RecipeBase, RecipeBaseContent, RecipeBaseStatus, Recipe, Ingredient, RecipeLanguage, RecipeDifficulty, RecipeState
+# from src.common.rdb.domain.recipe.models import RecipeBase, RecipeBaseContent, RecipeBaseState, Recipe, Ingredient, RecipeLanguage, RecipeDifficulty, RecipeState
 
 
 # @pytest.fixture(scope="session")
@@ -225,9 +225,9 @@
 
 
 # @pytest.fixture
-# def sample_recipe_base_status(session, sample_recipe_base) -> RecipeBaseStatus:
+# def sample_recipe_base_status(session, sample_recipe_base) -> RecipeBaseState:
 #     """테스트용 샘플 레시피 베이스 상태를 생성합니다."""
-#     status = RecipeBaseStatus(
+#     status = RecipeBaseState(
 #         recipe_base_id=sample_recipe_base.recipe_base_id,
 #         state=RecipeState.COMPLETED
 #     )

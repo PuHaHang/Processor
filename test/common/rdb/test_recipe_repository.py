@@ -9,8 +9,8 @@
 # import uuid
 # from datetime import datetime
 
-# from src.common.rdb.domain.recipe.models import RecipeBase, RecipeBaseContent, RecipeBaseStatus, Recipe, Ingredient, RecipeLanguage, RecipeDifficulty, RecipeState
-# from src.common.rdb.domain.recipe.repository import RecipeBaseRepository, RecipeBaseContentRepository, RecipeBaseStatusRepository, RecipeRepository, IngredientRepository
+# from src.common.rdb.domain.recipe.models import RecipeBase, RecipeBaseContent, RecipeBaseState, Recipe, Ingredient, RecipeLanguage, RecipeDifficulty, RecipeState
+# from src.common.rdb.domain.recipe.repository import RecipeBaseRepository, RecipeBaseContentRepository, RecipeBaseStateRepository, RecipeRepository, IngredientRepository
 
 
 # @pytest.mark.database
@@ -388,15 +388,15 @@
 
 # @pytest.mark.database
 # @pytest.mark.repository
-# class TestRecipeBaseStatusRepository:
-#     """RecipeBaseStatusRepository 클래스의 기능을 테스트합니다."""
+# class TestRecipeBaseStateRepository:
+#     """RecipeBaseStateRepository 클래스의 기능을 테스트합니다."""
     
 #     def test_create_recipe_base_status(self, session, sample_recipe_base, clean_database):
 #         """레시피 베이스 상태 생성 테스트"""
-#         repository = RecipeBaseStatusRepository()
+#         repository = RecipeBaseStateRepository()
         
 #         # 레시피 베이스 상태 생성
-#         status = RecipeBaseStatus(
+#         status = RecipeBaseState(
 #             recipe_base_id=sample_recipe_base.recipe_base_id,
 #             state=RecipeState.PROCESSING
 #         )
@@ -409,7 +409,7 @@
     
 #     def test_find_by_recipe_base_id(self, session, sample_recipe_base_status, clean_database):
 #         """레시피 베이스 ID로 상태 조회 테스트"""
-#         repository = RecipeBaseStatusRepository()
+#         repository = RecipeBaseStateRepository()
         
 #         # 레시피 베이스 ID로 조회
 #         found_status = repository.find_by_recipe_base_id(session, sample_recipe_base_status.recipe_base_id)
@@ -421,7 +421,7 @@
     
 #     def test_find_by_state(self, session, sample_recipe_base, clean_database):
 #         """상태로 레시피 베이스 상태 조회 테스트"""
-#         repository = RecipeBaseStatusRepository()
+#         repository = RecipeBaseStateRepository()
         
 #         # 여러 상태의 레시피 베이스 상태 생성
 #         states = [RecipeState.PENDING, RecipeState.COMPLETED, RecipeState.PENDING]
@@ -432,7 +432,7 @@
 #             session.flush()
 #             recipe_bases.append(recipe_base)
             
-#             status = RecipeBaseStatus(
+#             status = RecipeBaseState(
 #                 recipe_base_id=recipe_base.recipe_base_id,
 #                 state=state
 #             )
@@ -448,7 +448,7 @@
     
 #     def test_update_status(self, session, sample_recipe_base_status, clean_database):
 #         """상태 업데이트 테스트"""
-#         repository = RecipeBaseStatusRepository()
+#         repository = RecipeBaseStateRepository()
         
 #         # 상태 변경
 #         sample_recipe_base_status.state = RecipeState.FAILED
@@ -461,7 +461,7 @@
     
 #     def test_delete_status(self, session, sample_recipe_base_status, clean_database):
 #         """상태 삭제 테스트"""
-#         repository = RecipeBaseStatusRepository()
+#         repository = RecipeBaseStateRepository()
         
 #         # 상태 삭제
 #         result = repository.delete(session, sample_recipe_base_status)
@@ -475,7 +475,7 @@
     
 #     def test_count_by_state(self, session, sample_recipe_base, clean_database):
 #         """상태별 레시피 베이스 상태 수 조회 테스트"""
-#         repository = RecipeBaseStatusRepository()
+#         repository = RecipeBaseStateRepository()
         
 #         # 여러 상태의 레시피 베이스 상태 생성
 #         states = [RecipeState.PENDING, RecipeState.COMPLETED, RecipeState.PENDING, RecipeState.FAILED]
@@ -484,7 +484,7 @@
 #             session.add(recipe_base)
 #             session.flush()
             
-#             status = RecipeBaseStatus(
+#             status = RecipeBaseState(
 #                 recipe_base_id=recipe_base.recipe_base_id,
 #                 state=state
 #             )
@@ -498,7 +498,7 @@
     
 #     def test_exists_by_recipe_base_id(self, session, sample_recipe_base_status, clean_database):
 #         """레시피 베이스 ID로 상태 존재 여부 확인 테스트"""
-#         repository = RecipeBaseStatusRepository()
+#         repository = RecipeBaseStateRepository()
         
 #         # 존재하는 레시피 베이스 ID 확인
 #         exists = repository.exists_by_recipe_base_id(session, sample_recipe_base_status.recipe_base_id)

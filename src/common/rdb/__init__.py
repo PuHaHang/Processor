@@ -28,7 +28,7 @@ from .domain import (
     UserRepository, UserProfileRepository, UserBillingRepository, UserAlertRepository,
     
     # Recipe 도메인 모델
-    RecipeBase, RecipeBaseContent, RecipeBaseStatus, Ingredient, Recipe,
+    RecipeBase, RecipeBaseContent, RecipeBaseState, Ingredient, Recipe,
     
     # Recipe 도메인 enum
     RecipeLanguage, RecipeDifficulty, RecipeState,
@@ -43,7 +43,7 @@ from .domain import (
     AddIngredientToRecipeBaseDto, UpdateRecipeBaseIngredientDto,
     
     # Recipe 도메인 Repository
-    RecipeBaseRepository, RecipeBaseContentRepository, RecipeBaseStatusRepository,
+    RecipeBaseRepository, RecipeBaseContentRepository, RecipeBaseStateRepository,
     RecipeRepository, IngredientRepository
 )
 
@@ -72,7 +72,7 @@ __all__ = [
     'UserRepository', 'UserProfileRepository', 'UserBillingRepository', 'UserAlertRepository',
     
     # Recipe 도메인 모델
-    'RecipeBase', 'RecipeBaseContent', 'RecipeBaseStatus', 'Ingredient', 'Recipe',
+    'RecipeBase', 'RecipeBaseContent', 'RecipeBaseState', 'Ingredient', 'Recipe',
     
     # Recipe 도메인 enum
     'RecipeLanguage', 'RecipeDifficulty', 'RecipeState',
@@ -87,6 +87,6 @@ __all__ = [
     'AddIngredientToRecipeBaseDto', 'UpdateRecipeBaseIngredientDto',
     
     # Recipe 도메인 Repository
-    'RecipeBaseRepository', 'RecipeBaseContentRepository', 'RecipeBaseStatusRepository',
+    'RecipeBaseRepository', 'RecipeBaseContentRepository', 'RecipeBaseStateRepository',
     'RecipeRepository', 'IngredientRepository'
 ] 

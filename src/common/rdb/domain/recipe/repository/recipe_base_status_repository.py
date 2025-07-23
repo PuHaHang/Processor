@@ -1,7 +1,7 @@
 """
-RecipeBaseStatus Repository
+RecipeBaseState Repository
 
-이 모듈은 RecipeBaseStatus 모델의 기본 CRUD 작업을 담당하는 Repository 클래스를 제공합니다.
+이 모듈은 RecipeBaseState 모델의 기본 CRUD 작업을 담당하는 Repository 클래스를 제공합니다.
 """
 
 from typing import Optional, List
@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import and_, or_, func
 
-from ..models import RecipeBaseStatus, RecipeState
+from ..models import RecipeBaseState, RecipeState
 from ....common.dependency_injection import inject_session, transactional
 
 import logging
@@ -18,11 +18,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class RecipeBaseStatusRepository:
-    """RecipeBaseStatus 모델 기본 CRUD 작업을 담당하는 Repository"""
+class RecipeBaseStateRepository:
+    """RecipeBaseState 모델 기본 CRUD 작업을 담당하는 Repository"""
 
     @transactional
-    def create(self, session: Session, recipe_base_status: RecipeBaseStatus) -> RecipeBaseStatus:
+    def create(self, session: Session, recipe_base_status: RecipeBaseState) -> RecipeBaseState:
         """
         새로운 레시피 베이스 상태를 생성합니다.
 
@@ -48,7 +48,7 @@ class RecipeBaseStatusRepository:
             raise
 
     @inject_session
-    def find_by_recipe_base_id(self, session: Session, recipe_base_id: int) -> Optional[RecipeBaseStatus]:
+    def find_by_recipe_base_id(self, session: Session, recipe_base_id: int) -> Optional[RecipeBaseState]:
         """
         레시피 베이스 ID로 상태를 조회합니다.
 
@@ -63,9 +63,9 @@ class RecipeBaseStatusRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            status = session.query(RecipeBaseStatus).options(
-                joinedload(RecipeBaseStatus.recipe_base)
-            ).filter(RecipeBaseStatus.recipe_base_id == recipe_base_id).first()
+            status = session.query(RecipeBaseState).options(
+                joinedload(RecipeBaseState.recipe_base)
+            ).filter(RecipeBaseState.recipe_base_id == recipe_base_id).first()
             
             if status:
                 logger.debug(f"Recipe base status found: {recipe_base_id}")
@@ -79,7 +79,7 @@ class RecipeBaseStatusRepository:
             raise
 
     @inject_session
-    def find_by_state(self, session: Session, state: RecipeState, limit: int = 100, offset: int = 0) -> List[RecipeBaseStatus]:
+    def find_by_state(self, session: Session, state: RecipeState, limit: int = 100, offset: int = 0) -> List[RecipeBaseState]:
         """
         상태로 레시피 베이스 상태들을 조회합니다.
 
@@ -96,10 +96,10 @@ class RecipeBaseStatusRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            statuses = session.query(RecipeBaseStatus).options(
-                joinedload(RecipeBaseStatus.recipe_base)
+            statuses = session.query(RecipeBaseState).options(
+                joinedload(RecipeBaseState.recipe_base)
             ).filter(
-                RecipeBaseStatus.state == state
+                RecipeBaseState.state == state
             ).offset(offset).limit(limit).all()
             
             logger.debug(f"Found {len(statuses)} recipe base statuses for state: {state}")
@@ -110,7 +110,7 @@ class RecipeBaseStatusRepository:
             raise
 
     @transactional
-    def update(self, session: Session, recipe_base_status: RecipeBaseStatus) -> RecipeBaseStatus:
+    def update(self, session: Session, recipe_base_status: RecipeBaseState) -> RecipeBaseState:
         """
         레시피 베이스 상태를 업데이트합니다.
 
@@ -136,7 +136,7 @@ class RecipeBaseStatusRepository:
             raise
 
     @transactional
-    def delete(self, session: Session, recipe_base_status: RecipeBaseStatus) -> bool:
+    def delete(self, session: Session, recipe_base_status: RecipeBaseState) -> bool:
         """
         레시피 베이스 상태를 삭제합니다.
 
@@ -162,7 +162,7 @@ class RecipeBaseStatusRepository:
             raise
 
     @inject_session
-    def find_all(self, session: Session, limit: int = 100, offset: int = 0) -> List[RecipeBaseStatus]:
+    def find_all(self, session: Session, limit: int = 100, offset: int = 0) -> List[RecipeBaseState]:
         """
         모든 레시피 베이스 상태를 조회합니다.
 
@@ -178,8 +178,8 @@ class RecipeBaseStatusRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            statuses = session.query(RecipeBaseStatus).options(
-                joinedload(RecipeBaseStatus.recipe_base)
+            statuses = session.query(RecipeBaseState).options(
+                joinedload(RecipeBaseState.recipe_base)
             ).offset(offset).limit(limit).all()
             
             logger.debug(f"Found {len(statuses)} recipe base statuses")
@@ -204,7 +204,7 @@ class RecipeBaseStatusRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            count = session.query(func.count(RecipeBaseStatus.recipe_base_id)).scalar()
+            count = session.query(func.count(RecipeBaseState.recipe_base_id)).scalar()
             
             logger.debug(f"Total recipe base status count: {count}")
             return count
@@ -229,8 +229,8 @@ class RecipeBaseStatusRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            count = session.query(func.count(RecipeBaseStatus.recipe_base_id)).filter(
-                RecipeBaseStatus.state == state
+            count = session.query(func.count(RecipeBaseState.recipe_base_id)).filter(
+                RecipeBaseState.state == state
             ).scalar()
             
             logger.debug(f"Recipe base status count for state {state}: {count}")
@@ -256,8 +256,8 @@ class RecipeBaseStatusRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            exists = session.query(RecipeBaseStatus).filter(
-                RecipeBaseStatus.recipe_base_id == recipe_base_id
+            exists = session.query(RecipeBaseState).filter(
+                RecipeBaseState.recipe_base_id == recipe_base_id
             ).first() is not None
             
             logger.debug(f"Recipe base status exists for recipe base {recipe_base_id}: {exists}")

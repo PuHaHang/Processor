@@ -76,7 +76,7 @@ class RecipeBase(Base):
         comment="컨텐츠 소스 (platform, url)"
     )
     
-    metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+    reference_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSONB,
         nullable=True,
         comment="컨텐츠 메타데이터"
@@ -130,8 +130,8 @@ class RecipeBase(Base):
         cascade="all, delete-orphan"
     )
     
-    status: Mapped[Optional["RecipeBaseStatus"]] = relationship(
-        "RecipeBaseStatus",
+    status: Mapped[Optional["RecipeBaseState"]] = relationship(
+        "RecipeBaseState",
         back_populates="recipe_base",
         uselist=False,
         cascade="all, delete-orphan"
@@ -242,7 +242,7 @@ class RecipeBaseContent(Base):
         return f"<RecipeBaseContent(recipe_base_content_id={self.recipe_base_content_id}, title={self.title})>"
 
 
-class RecipeBaseStatus(Base):
+class RecipeBaseState(Base):
     """레시피 베이스 상태 테이블"""
     __tablename__ = "recipe_bases_status"
     
@@ -267,7 +267,7 @@ class RecipeBaseStatus(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<RecipeBaseStatus(recipe_base_id={self.recipe_base_id}, state={self.state})>"
+        return f"<RecipeBaseState(recipe_base_id={self.recipe_base_id}, state={self.state})>"
 
 
 class Ingredient(Base):
@@ -380,7 +380,7 @@ class Recipe(Base):
 __all__ = [
     "RecipeBase",
     "RecipeBaseContent", 
-    "RecipeBaseStatus",
+    "RecipeBaseState",
     "Ingredient",
     "Recipe",
     "RecipeLanguage",

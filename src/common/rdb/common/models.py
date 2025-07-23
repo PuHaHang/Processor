@@ -21,7 +21,7 @@ from ..domain.user.models import (
 from ..domain.recipe.models import (
     RecipeBase,
     RecipeBaseContent,
-    RecipeBaseStatus,
+    RecipeBaseState,
     Ingredient,
     Recipe,
     RecipeLanguage,
@@ -44,7 +44,7 @@ __all__ = [
     # Recipe 도메인
     "RecipeBase",
     "RecipeBaseContent",
-    "RecipeBaseStatus",
+    "RecipeBaseState",
     "Ingredient",
     "Recipe",
     "RecipeLanguage",

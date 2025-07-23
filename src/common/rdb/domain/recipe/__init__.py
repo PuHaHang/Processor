@@ -6,7 +6,7 @@ Recipe 도메인 패키지
 """
 
 from .models import (
-    RecipeBase, RecipeBaseContent, RecipeBaseStatus, Ingredient, Recipe,
+    RecipeBase, RecipeBaseContent, RecipeBaseState, Ingredient, Recipe,
     RecipeLanguage, RecipeDifficulty, RecipeState
 )
 from .recipe_service import RecipeService
@@ -29,7 +29,7 @@ from .dto import (
     UpdateRecipeBaseIngredientDto
 )
 from .repository import (
-    RecipeBaseRepository, RecipeBaseContentRepository, RecipeBaseStatusRepository,
+    RecipeBaseRepository, RecipeBaseContentRepository, RecipeBaseStateRepository,
     RecipeRepository, IngredientRepository
 )
 
@@ -37,7 +37,7 @@ __all__ = [
     # Models
     'RecipeBase',
     'RecipeBaseContent',
-    'RecipeBaseStatus',
+    'RecipeBaseState',
     'Ingredient',
     'Recipe',
     
@@ -69,7 +69,7 @@ __all__ = [
     # Repositories
     'RecipeBaseRepository',
     'RecipeBaseContentRepository',
-    'RecipeBaseStatusRepository',
+    'RecipeBaseStateRepository',
     'RecipeRepository',
     'IngredientRepository'
 ] 

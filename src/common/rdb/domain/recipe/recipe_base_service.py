@@ -15,7 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import and_, or_, func
 
 from .models import (
-    RecipeBase, RecipeBaseContent, RecipeBaseStatus, Ingredient,
+    RecipeBase, RecipeBaseContent, RecipeBaseState, Ingredient,
     RecipeLanguage, RecipeDifficulty, RecipeState
 )
 from .dto import (
@@ -23,7 +23,7 @@ from .dto import (
     AddIngredientToRecipeBaseDto, UpdateRecipeBaseIngredientDto
 )
 from .repository import (
-    RecipeBaseRepository, RecipeBaseContentRepository, RecipeBaseStatusRepository,
+    RecipeBaseRepository, RecipeBaseContentRepository, RecipeBaseStateRepository,
     IngredientRepository
 )
 from ...common.dependency_injection import inject_session, transactional
@@ -39,7 +39,7 @@ class RecipeBaseService:
     def __init__(self):
         self.recipe_base_repository = RecipeBaseRepository()
         self.recipe_base_content_repository = RecipeBaseContentRepository()
-        self.recipe_base_status_repository = RecipeBaseStatusRepository()
+        self.recipe_base_status_repository = RecipeBaseStateRepository()
         self.ingredient_repository = IngredientRepository()
 
     @transactional
@@ -98,7 +98,7 @@ class RecipeBaseService:
                     )
             
             # 레시피 베이스 상태 생성
-            status = RecipeBaseStatus(
+            status = RecipeBaseState(
                 recipe_base_id=recipe_base.recipe_base_id,
                 state=RecipeState.PENDING
             )
@@ -466,9 +466,9 @@ class RecipeBaseService:
             
             # 상태별 통계
             status_stats = session.query(
-                RecipeBaseStatus.state,
-                func.count(RecipeBaseStatus.recipe_base_id).label('count')
-            ).group_by(RecipeBaseStatus.state).all()
+                RecipeBaseState.state,
+                func.count(RecipeBaseState.recipe_base_id).label('count')
+            ).group_by(RecipeBaseState.state).all()
             
             # 조회수 통계
             view_stats = session.query(
@@ -549,7 +549,7 @@ class RecipeBaseService:
             raise
 
     @transactional
-    def update_recipe_base_status(self, session: Session, recipe_base_id: int, state: RecipeState) -> Optional[RecipeBaseStatus]:
+    def update_recipe_base_status(self, session: Session, recipe_base_id: int, state: RecipeState) -> Optional[RecipeBaseState]:
         """
         레시피 베이스의 상태를 업데이트합니다.
 
@@ -569,7 +569,7 @@ class RecipeBaseService:
             
             if not status:
                 # 상태가 없으면 새로 생성
-                status = RecipeBaseStatus(
+                status = RecipeBaseState(
                     recipe_base_id=recipe_base_id,
                     state=state
                 )

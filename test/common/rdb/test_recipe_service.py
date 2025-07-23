@@ -9,7 +9,7 @@
 # import uuid
 # from unittest.mock import patch
 
-# from src.common.rdb.domain.recipe.models import RecipeBase, RecipeBaseContent, RecipeBaseStatus, Recipe, Ingredient, RecipeLanguage, RecipeDifficulty, RecipeState
+# from src.common.rdb.domain.recipe.models import RecipeBase, RecipeBaseContent, RecipeBaseState, Recipe, Ingredient, RecipeLanguage, RecipeDifficulty, RecipeState
 # from src.common.rdb.domain.recipe.recipe_service import RecipeService
 # from src.common.rdb.domain.recipe.recipe_base_service import RecipeBaseService
 # from src.common.rdb.domain.recipe.dto import (

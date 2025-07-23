@@ -102,13 +102,12 @@ class DatabaseManager:
 
     def _get_database_url(self) -> str:
         """환경변수로부터 데이터베이스 URL을 구성합니다."""
-        host = os.getenv("DB_HOST", "localhost")
-        port = os.getenv("DB_PORT", "5432")
-        database = os.getenv("DB_NAME", "puhahang")
-        username = os.getenv("DB_USER", "postgres")
-        password = os.getenv("DB_PASSWORD", "")
-
-        return f"postgresql://{username}:{password}@{host}:{port}/{database}"
+        host = os.getenv("POSTGRES_HOST", "localhost")
+        port = os.getenv("POSTGRES_PORT", "5432")
+        database = os.getenv("POSTGRES_DB", "puhahang")
+        username = os.getenv("POSTGRES_USER", "postgres")
+        password = os.getenv("POSTGRES_PW", "")
+        return f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}"
 
     def _setup_event_listeners(self) -> None:
         """SQLAlchemy 이벤트 리스너를 설정합니다."""
