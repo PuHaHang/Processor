@@ -45,3 +45,4 @@ transformers
 onnx
 onnxruntime
 google-genai
+psycopg2
