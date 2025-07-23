@@ -47,9 +47,9 @@ class CreateUserDto(BaseModel):
         return v.strip()
 
     @field_validator('openid')
-    def validate_openid(cls, v, values):
+    def validate_openid(cls, v, info):
         """OpenID 검증"""
-        provider = values.get('provider')
+        provider = info.data.get('provider')
         if provider != UserProvider.GUEST and not v:
             raise ValueError("GUEST가 아닌 제공자는 OpenID가 필요합니다.")
         
