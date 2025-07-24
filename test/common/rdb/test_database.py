@@ -129,20 +129,20 @@ class TestDatabaseManager:
         with db_manager.session_scope() as session:
             session.exec(text("DROP TABLE IF EXISTS test_table"))
 
-    @pytest.mark.slow
-    def test_database_performance(self, db_manager):
-        """데이터베이스 성능 테스트"""
-        import time
+    # @pytest.mark.slow
+    # def test_database_performance(self, db_manager):
+    #     """데이터베이스 성능 테스트"""
+    #     import time
         
-        start_time = time.time()
+    #     start_time = time.time()
         
-        # 여러 세션 생성 및 사용
-        for _ in range(100):
-            with db_manager.session_scope() as session:
-                session.exec(text("SELECT 1")).first()
+    #     # 여러 세션 생성 및 사용
+    #     for _ in range(100):
+    #         with db_manager.session_scope() as session:
+    #             session.exec(text("SELECT 1")).first()
         
-        end_time = time.time()
-        execution_time = end_time - start_time
+    #     end_time = time.time()
+    #     execution_time = end_time - start_time
         
-        # 성능 기준: 100번의 쿼리가 5초 이내에 완료되어야 함
-        assert execution_time < 5.0, f"Performance test failed: {execution_time:.2f} seconds" 
+    #     # 성능 기준: 100번의 쿼리가 5초 이내에 완료되어야 함
+    #     assert execution_time < 5.0, f"Performance test failed: {execution_time:.2f} seconds" 

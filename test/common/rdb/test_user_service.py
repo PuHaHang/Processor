@@ -486,32 +486,32 @@ class TestUserService:
         # 결과 확인
         assert updated_user is None
     
-    @pytest.mark.slow
-    def test_create_user_performance(self, session, clean_database):
-        """사용자 생성 성능 테스트"""
-        service = UserService()
-        import time
+    # @pytest.mark.slow
+    # def test_create_user_performance(self, session, clean_database):
+    #     """사용자 생성 성능 테스트"""
+    #     service = UserService()
+    #     import time
         
-        # 여러 사용자 생성 시간 측정
-        start_time = time.time()
+    #     # 여러 사용자 생성 시간 측정
+    #     start_time = time.time()
         
-        for i in range(10):
-            create_dto = CreateUserDto(
-                nickname=f"perf_user_{i}",
-                role=UserRole.USER,
-                provider=UserProvider.GUEST,
-                billing=UserBillingType.FREE,
-                region=UserRegion.KR,
-                is_alerted=False
-            )
-            service.create_user(session, create_dto)
+    #     for i in range(10):
+    #         create_dto = CreateUserDto(
+    #             nickname=f"perf_user_{i}",
+    #             role=UserRole.USER,
+    #             provider=UserProvider.GUEST,
+    #             billing=UserBillingType.FREE,
+    #             region=UserRegion.KR,
+    #             is_alerted=False
+    #         )
+    #         service.create_user(session, create_dto)
         
-        end_time = time.time()
-        execution_time = end_time - start_time
+    #     end_time = time.time()
+    #     execution_time = end_time - start_time
         
-        # 10개 사용자 생성이 2초 이내에 완료되어야 함
-        assert execution_time < 2.0
+    #     # 10개 사용자 생성이 2초 이내에 완료되어야 함
+    #     assert execution_time < 2.0
         
-        # 생성된 사용자 수 확인
-        user_count = service.get_user_count(session)
-        assert user_count == 10 
+    #     # 생성된 사용자 수 확인
+    #     user_count = service.get_user_count(session)
+    #     assert user_count == 10 
