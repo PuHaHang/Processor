@@ -23,7 +23,7 @@ class CreateUserDto(BaseModel):
         billing: 결제 플랜 (기본값: FREE)
         region: 사용자 지역 (기본값: KR)
         fcm_token: FCM 토큰
-        alert_flag: 알림 플래그 (기본값: False)
+        is_alerted: 알림 플래그 (기본값: False)
     """
     nickname: str
     role: UserRole = UserRole.USER
@@ -33,7 +33,7 @@ class CreateUserDto(BaseModel):
     billing: UserBillingType = UserBillingType.FREE
     region: UserRegion = UserRegion.KR
     fcm_token: Optional[str] = None
-    alert_flag: bool = False
+    is_alerted: bool = False
 
     @field_validator('nickname')
     def validate_nickname(cls, v):
