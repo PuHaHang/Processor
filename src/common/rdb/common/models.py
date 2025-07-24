@@ -21,7 +21,7 @@ from ..domain.user.models import (
 from ..domain.recipe.models import (
     RecipeBase,
     RecipeBaseContent,
-    RecipeState,
+    RecipeBaseState,
     Ingredient,
     Recipe,
     RecipeLanguage,
