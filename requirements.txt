@@ -30,7 +30,7 @@ requests==2.32.4
 sniffio==1.3.1
 sounddevice==0.5.2
 SpeechRecognition==3.14.3
-SQLAlchemy==2.0.41
+sqlmodel==0.0.24
 starlette==0.46.2
 tqdm==4.67.1
 typing-inspection==0.4.1
@@ -46,3 +46,4 @@ onnx
 onnxruntime
 google-genai
 psycopg2
+python-ulid==3.0.0
