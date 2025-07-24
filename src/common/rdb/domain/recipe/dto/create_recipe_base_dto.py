@@ -16,8 +16,7 @@ class CreateRecipeBaseDto(BaseModel):
     
     Attributes:
         thumbnail: 썸네일 이미지 URL
-        referrer: 참조 정보 (platform, url)
-        metadata: 컨텐츠 메타데이터
+        reference: 참조 정보 (platform, url)
         servings: 인분 수
         difficulty: 요리 난이도
         estimated_time: 추정 요리 소요 시간(분)
@@ -30,8 +29,7 @@ class CreateRecipeBaseDto(BaseModel):
     """
     # RecipeBase 필드들
     thumbnail: Optional[str] = None
-    referrer: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    reference: Optional[Dict[str, Any]] = None
     servings: Optional[int] = None
     difficulty: Optional[RecipeDifficulty] = None
     estimated_time: Optional[int] = None
@@ -124,8 +122,8 @@ class CreateRecipeBaseDto(BaseModel):
         
         return v
 
-    @field_validator('referrer')
-    def validate_referrer(cls, v):
+    @field_validator('reference')
+    def validate_reference(cls, v):
         """참조 정보 검증"""
         if v is not None:
             if not isinstance(v, dict):

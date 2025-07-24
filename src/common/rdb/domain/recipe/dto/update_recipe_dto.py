@@ -1,8 +1,7 @@
 """
-Recipe 수정을 위한 DTO
+Recipe 도메인 수정 DTO
 
-이 모듈은 레시피 수정 시 필요한 데이터를 전달하는 DTO를 정의합니다.
-새로운 ERD 구조에 따라 레시피 정보가 여러 테이블로 분산되어 있습니다.
+이 모듈은 레시피 수정을 위한 데이터 전송 객체를 정의합니다.
 """
 
 from typing import Optional, Dict, Any
@@ -14,35 +13,34 @@ class UpdateRecipeDto(BaseModel):
     레시피 수정을 위한 데이터 전송 객체
     
     Attributes:
-        recipe_uuid: 레시피 ID (필수)
+        recipe_id: 레시피 ID (필수)
         title: 레시피 제목
         stages: 요리 과정
     """
-    recipe_uuid: int
+    recipe_id: int
     title: Optional[str] = None
     stages: Optional[Dict[str, Any]] = None
 
-    @field_validator('recipe_uuid')
-    def validate_recipe_uuid(cls, v):
-        """레시피 ID 검증"""
+    @field_validator('recipe_id')
+    def validate_recipe_id(cls, v):
+        """레시피 ID 유효성 검사"""
         if v <= 0:
-            raise ValueError("레시피 ID는 1 이상이어야 합니다.")
-        
+            raise ValueError('레시피 ID는 0보다 커야 합니다')
         return v
 
     @field_validator('title')
     def validate_title(cls, v):
-        """제목 검증"""
-        if v is not None and not v.strip():
-            raise ValueError("제목이 제공된 경우 빈 문자열일 수 없습니다.")
-        
-        if v is not None and len(v) > 255:
-            raise ValueError("제목은 255자를 초과할 수 없습니다.")
-        
-        return v.strip() if v else v
+        """제목 유효성 검사"""
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError('제목이 제공된 경우 빈 문자열일 수 없습니다')
+            if len(v) > 255:
+                raise ValueError('제목은 255자를 초과할 수 없습니다')
+        return v
 
     def get_update_fields(self) -> Dict[str, Any]:
-        """업데이트할 필드들만 반환"""
+        """업데이트할 필드들의 딕셔너리를 반환합니다."""
         fields = {}
         if self.title is not None:
             fields['title'] = self.title
