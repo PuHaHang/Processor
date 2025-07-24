@@ -1,7 +1,7 @@
 """
-SQLAlchemy 모델 통합
+SQLModel 모델 통합
 
-이 모듈은 모든 도메인의 모델을 통합하여 제공합니다.
+이 모듈은 모든 도메인의 SQLModel 모델을 통합하여 제공합니다.
 각 도메인별 모델은 해당 도메인 패키지에서 관리됩니다.
 새로운 ERD 구조에 따라 모델들이 여러 테이블로 분리되어 있습니다.
 """
@@ -21,7 +21,7 @@ from ..domain.user.models import (
 from ..domain.recipe.models import (
     RecipeBase,
     RecipeBaseContent,
-    RecipeBaseState,
+    RecipeState,
     Ingredient,
     Recipe,
     RecipeLanguage,
