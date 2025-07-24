@@ -5,11 +5,12 @@ RDB 패키지
 - 데이터베이스 연결 및 세션 관리
 - 의존성 주입 시스템
 - 도메인별 모델, 서비스, DTO
+SQLModel을 사용하여 타입 안전성과 데이터 검증을 제공합니다.
 새로운 ERD 구조에 따라 모델들이 여러 테이블로 분산되어 있습니다.
 """
 
-from .common.database import DatabaseManager, db_manager
-from .common.dependency_injection import DependencyContainer, inject_session, inject_db_service, transactional
+from .common.database import DatabaseManager
+
 
 from .domain import (
     # User 도메인 모델
@@ -50,7 +51,6 @@ from .domain import (
 __all__ = [
     # Database
     'DatabaseManager',
-    'db_manager',
     'DependencyContainer',
     'inject_session',
     'inject_db_service',

@@ -2,33 +2,31 @@
 Recipe Repository
 
 이 모듈은 Recipe 모델의 기본 CRUD 작업을 담당하는 Repository 클래스를 제공합니다.
+SQLModel을 최대한 활용하여 타입 안전성과 성능을 보장합니다.
 """
 
+import logging
 from typing import Optional, List
 from datetime import datetime
 
-from sqlalchemy.orm import Session, joinedload
+from sqlmodel import Session, select, func
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import and_, or_, func
 
-from ..models import Recipe
-from ....common.dependency_injection import inject_session, transactional
+from ..models import Recipe, RecipeBaseContent
 
-import logging
 
 logger = logging.getLogger(__name__)
 
 
 class RecipeRepository:
-    """Recipe 모델 기본 CRUD 작업을 담당하는 Repository"""
+    """Recipe 모델에 대한 SQLModel 최적화 Repository 클래스"""
 
-    @transactional
     def create(self, session: Session, recipe: Recipe) -> Recipe:
         """
         새로운 레시피를 생성합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             recipe: 생성할 레시피 엔티티
 
         Returns:
@@ -40,6 +38,7 @@ class RecipeRepository:
         try:
             session.add(recipe)
             session.flush()
+            session.refresh(recipe)
             
             logger.debug(f"Recipe created: {recipe.recipe_id}")
             return recipe
@@ -48,13 +47,12 @@ class RecipeRepository:
             logger.error(f"Error creating recipe: {e}")
             raise
 
-    @inject_session
     def find_by_id(self, session: Session, recipe_id: int) -> Optional[Recipe]:
         """
         ID로 레시피를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             recipe_id: 레시피 ID
 
         Returns:
@@ -64,29 +62,26 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            recipe = session.query(Recipe).options(
-                joinedload(Recipe.user),
-                joinedload(Recipe.recipe_base)
-            ).filter(Recipe.recipe_id == recipe_id).first()
+            statement = select(Recipe).where(Recipe.recipe_id == recipe_id)
+            result = session.exec(statement).first()
             
-            if recipe:
+            if result:
                 logger.debug(f"Recipe found: {recipe_id}")
             else:
                 logger.debug(f"Recipe not found: {recipe_id}")
                 
-            return recipe
+            return result
             
         except SQLAlchemyError as e:
             logger.error(f"Error finding recipe by ID: {e}")
             raise
 
-    @inject_session
     def find_by_user_id(self, session: Session, user_id: str, limit: int = 100, offset: int = 0) -> List[Recipe]:
         """
         사용자 ID로 레시피들을 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             user_id: 사용자 ID
             limit: 조회 제한 수
             offset: 조회 시작 위치
@@ -98,27 +93,27 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            recipes = session.query(Recipe).options(
-                joinedload(Recipe.user),
-                joinedload(Recipe.recipe_base)
-            ).filter(
-                Recipe.user_id == user_id
-            ).offset(offset).limit(limit).all()
+            statement = (
+                select(Recipe)
+                .where(Recipe.user_id == user_id)
+                .offset(offset)
+                .limit(limit)
+            )
+            result = session.exec(statement).all()
             
-            logger.debug(f"Found {len(recipes)} recipes for user: {user_id}")
-            return recipes
+            logger.debug(f"Found {len(result)} recipes for user: {user_id}")
+            return result
             
         except SQLAlchemyError as e:
             logger.error(f"Error finding recipes by user ID: {e}")
             raise
 
-    @inject_session
     def find_by_recipe_base_id(self, session: Session, recipe_base_id: int, limit: int = 100, offset: int = 0) -> List[Recipe]:
         """
         레시피 베이스 ID로 레시피들을 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             recipe_base_id: 레시피 베이스 ID
             limit: 조회 제한 수
             offset: 조회 시작 위치
@@ -130,27 +125,32 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            recipes = session.query(Recipe).options(
-                joinedload(Recipe.user),
-                joinedload(Recipe.recipe_base)
-            ).filter(
-                Recipe.recipe_base_id == recipe_base_id
-            ).offset(offset).limit(limit).all()
+            recipe_base_content_ids = session.exec(
+                select(RecipeBaseContent.recipe_base_content_id)
+                .where(RecipeBaseContent.recipe_base_id == recipe_base_id)
+            ).all()
+
+            statement = (
+                select(Recipe)
+                .where(Recipe.recipe_base_content_id.in_(recipe_base_content_ids))
+                .offset(offset)
+                .limit(limit)
+            )
+            result = session.exec(statement).all()
             
-            logger.debug(f"Found {len(recipes)} recipes for recipe base: {recipe_base_id}")
-            return recipes
+            logger.debug(f"Found {len(result)} recipes for recipe base: {recipe_base_id}")
+            return result
             
         except SQLAlchemyError as e:
             logger.error(f"Error finding recipes by recipe base ID: {e}")
             raise
 
-    @inject_session
     def search_by_title(self, session: Session, title_pattern: str, limit: int = 100, offset: int = 0) -> List[Recipe]:
         """
         제목 패턴으로 레시피들을 검색합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             title_pattern: 검색할 제목 패턴
             limit: 조회 제한 수
             offset: 조회 시작 위치
@@ -162,27 +162,27 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            recipes = session.query(Recipe).options(
-                joinedload(Recipe.user),
-                joinedload(Recipe.recipe_base)
-            ).filter(
-                Recipe.title.ilike(f"%{title_pattern}%")
-            ).offset(offset).limit(limit).all()
+            statement = (
+                select(Recipe)
+                .where(Recipe.title.ilike(f"%{title_pattern}%"))
+                .offset(offset)
+                .limit(limit)
+            )
+            result = session.exec(statement).all()
             
-            logger.debug(f"Found {len(recipes)} recipes for title pattern: {title_pattern}")
-            return recipes
+            logger.debug(f"Found {len(result)} recipes for title pattern: {title_pattern}")
+            return result
             
         except SQLAlchemyError as e:
             logger.error(f"Error searching recipes by title: {e}")
             raise
 
-    @inject_session
     def find_recent(self, session: Session, limit: int = 100, offset: int = 0) -> List[Recipe]:
         """
         최근 생성된 레시피들을 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             limit: 조회 제한 수
             offset: 조회 시작 위치
 
@@ -193,27 +193,27 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            recipes = session.query(Recipe).options(
-                joinedload(Recipe.user),
-                joinedload(Recipe.recipe_base)
-            ).order_by(
-                Recipe.created_at.desc()
-            ).offset(offset).limit(limit).all()
+            statement = (
+                select(Recipe)
+                .order_by(Recipe.created_at.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+            result = session.exec(statement).all()
             
-            logger.debug(f"Found {len(recipes)} recent recipes")
-            return recipes
+            logger.debug(f"Found {len(result)} recent recipes")
+            return result
             
         except SQLAlchemyError as e:
             logger.error(f"Error finding recent recipes: {e}")
             raise
 
-    @transactional
     def update(self, session: Session, recipe: Recipe) -> Recipe:
         """
         레시피를 업데이트합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             recipe: 업데이트할 레시피 엔티티
 
         Returns:
@@ -223,9 +223,10 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            recipe.updated_at = datetime.utcnow()
-            session.merge(recipe)
+            recipe.updated_at = datetime.now()
+            session.add(recipe)
             session.flush()
+            session.refresh(recipe)
             
             logger.debug(f"Recipe updated: {recipe.recipe_id}")
             return recipe
@@ -234,13 +235,12 @@ class RecipeRepository:
             logger.error(f"Error updating recipe: {e}")
             raise
 
-    @transactional
     def delete(self, session: Session, recipe: Recipe) -> bool:
         """
         레시피를 삭제합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             recipe: 삭제할 레시피 엔티티
 
         Returns:
@@ -260,13 +260,12 @@ class RecipeRepository:
             logger.error(f"Error deleting recipe: {e}")
             raise
 
-    @inject_session
     def find_all(self, session: Session, limit: int = 100, offset: int = 0) -> List[Recipe]:
         """
         모든 레시피를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             limit: 조회 제한 수
             offset: 조회 시작 위치
 
@@ -277,25 +276,22 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            recipes = session.query(Recipe).options(
-                joinedload(Recipe.user),
-                joinedload(Recipe.recipe_base)
-            ).offset(offset).limit(limit).all()
+            statement = select(Recipe).offset(offset).limit(limit)
+            result = session.exec(statement).all()
             
-            logger.debug(f"Found {len(recipes)} recipes")
-            return recipes
+            logger.debug(f"Found {len(result)} recipes")
+            return result
             
         except SQLAlchemyError as e:
             logger.error(f"Error finding all recipes: {e}")
             raise
 
-    @inject_session
     def count(self, session: Session) -> int:
         """
         전체 레시피 수를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
 
         Returns:
             전체 레시피 수
@@ -304,7 +300,8 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            count = session.query(func.count(Recipe.recipe_id)).scalar()
+            statement = select(func.count(Recipe.recipe_id))
+            count = session.exec(statement).one()
             
             logger.debug(f"Total recipe count: {count}")
             return count
@@ -313,13 +310,12 @@ class RecipeRepository:
             logger.error(f"Error counting recipes: {e}")
             raise
 
-    @inject_session
     def count_by_user_id(self, session: Session, user_id: str) -> int:
         """
         사용자별 레시피 수를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             user_id: 사용자 ID
 
         Returns:
@@ -329,9 +325,8 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            count = session.query(func.count(Recipe.recipe_id)).filter(
-                Recipe.user_id == user_id
-            ).scalar()
+            statement = select(func.count(Recipe.recipe_id)).where(Recipe.user_id == user_id)
+            count = session.exec(statement).one()
             
             logger.debug(f"Recipe count for user {user_id}: {count}")
             return count
@@ -340,13 +335,12 @@ class RecipeRepository:
             logger.error(f"Error counting recipes by user ID: {e}")
             raise
 
-    @inject_session
     def count_by_recipe_base_id(self, session: Session, recipe_base_id: int) -> int:
         """
         레시피 베이스별 레시피 수를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             recipe_base_id: 레시피 베이스 ID
 
         Returns:
@@ -356,13 +350,43 @@ class RecipeRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            count = session.query(func.count(Recipe.recipe_id)).filter(
-                Recipe.recipe_base_id == recipe_base_id
-            ).scalar()
+            recipe_base_content_ids = session.exec(
+                select(RecipeBaseContent.recipe_base_content_id)
+                .where(RecipeBaseContent.recipe_base_id == recipe_base_id)
+            ).all()
+
+            statement = select(func.count(Recipe.recipe_id)).where(Recipe.recipe_base_content_id.in_(recipe_base_content_ids))
+            count = session.exec(statement).one()
             
             logger.debug(f"Recipe count for recipe base {recipe_base_id}: {count}")
             return count
             
         except SQLAlchemyError as e:
             logger.error(f"Error counting recipes by recipe base ID: {e}")
+            raise
+
+    def exists_by_id(self, session: Session, recipe_id: int) -> bool:
+        """
+        레시피 ID 존재 여부를 확인합니다.
+
+        Args:
+            session: SQLModel 세션
+            recipe_id: 레시피 ID
+
+        Returns:
+            존재 여부
+
+        Raises:
+            SQLAlchemyError: 데이터베이스 오류 발생 시
+        """
+        try:
+            statement = select(Recipe.recipe_id).where(Recipe.recipe_id == recipe_id)
+            result = session.exec(statement).first()
+            exists = result is not None
+            
+            logger.debug(f"Recipe exists by ID {recipe_id}: {exists}")
+            return exists
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Error checking recipe existence by ID: {e}")
             raise 

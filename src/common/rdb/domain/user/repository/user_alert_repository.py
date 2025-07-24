@@ -1,214 +1,199 @@
 """
-UserAlert Repository
+User Alert Repository
 
-이 모듈은 UserAlert 모델의 기본 CRUD 작업을 담당하는 Repository 클래스를 제공합니다.
+이 모듈은 UserAlert 모델에 대한 데이터 접근 계층을 제공합니다.
+SQLModel을 최대한 활용하여 타입 안전성과 성능을 보장합니다.
 """
 
+import logging
 from typing import Optional, List
-from datetime import datetime
 
-from sqlalchemy.orm import Session, joinedload
+from sqlmodel import Session, select, func
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import and_, or_, func
 
 from ..models import UserAlert
-from ....common.dependency_injection import inject_session, transactional
-
-import logging
 
 logger = logging.getLogger(__name__)
 
 
 class UserAlertRepository:
-    """UserAlert 모델 기본 CRUD 작업을 담당하는 Repository"""
+    """UserAlert 모델에 대한 SQLModel 최적화 Repository 클래스"""
 
-    @transactional
-    def create(self, session: Session, user_alert: UserAlert) -> UserAlert:
+    def create(self, session: Session, alert: UserAlert) -> UserAlert:
         """
         새로운 사용자 알림 정보를 생성합니다.
 
         Args:
-            session: 데이터베이스 세션
-            user_alert: 생성할 사용자 알림 정보 엔티티
+            session: SQLModel 세션
+            alert: 생성할 알림 정보 객체
 
         Returns:
-            생성된 사용자 알림 정보 엔티티
+            생성된 알림 정보 객체
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            session.add(user_alert)
+            session.add(alert)
             session.flush()
-            
-            logger.debug(f"User alert created: {user_alert.user_id}")
-            return user_alert
-            
+            session.refresh(alert)
+            logger.debug(f"UserAlert created for user: {alert.user_id}")
+            return alert
         except SQLAlchemyError as e:
             logger.error(f"Error creating user alert: {e}")
             raise
 
-    @inject_session
     def find_by_user_id(self, session: Session, user_id: str) -> Optional[UserAlert]:
         """
         사용자 ID로 알림 정보를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             user_id: 사용자 ID
 
         Returns:
-            사용자 알림 정보 엔티티 또는 None
+            알림 정보 객체 또는 None
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            alert = session.query(UserAlert).options(
-                joinedload(UserAlert.user)
-            ).filter(UserAlert.user_id == user_id).first()
+            statement = select(UserAlert).where(UserAlert.user_id == user_id)
+            result = session.exec(statement).first()
             
-            if alert:
-                logger.debug(f"User alert found: {user_id}")
+            if result:
+                logger.debug(f"UserAlert found for user: {user_id}")
             else:
-                logger.debug(f"User alert not found: {user_id}")
+                logger.debug(f"UserAlert not found for user: {user_id}")
                 
-            return alert
-            
+            return result
         except SQLAlchemyError as e:
             logger.error(f"Error finding user alert by user ID: {e}")
             raise
 
-    @inject_session
     def find_by_fcm_token(self, session: Session, fcm_token: str) -> Optional[UserAlert]:
         """
         FCM 토큰으로 알림 정보를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             fcm_token: FCM 토큰
 
         Returns:
-            사용자 알림 정보 엔티티 또는 None
+            알림 정보 객체 또는 None
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            alert = session.query(UserAlert).options(
-                joinedload(UserAlert.user)
-            ).filter(UserAlert.fcm_token == fcm_token).first()
+            statement = select(UserAlert).where(UserAlert.fcm_token == fcm_token)
+            result = session.exec(statement).first()
             
-            if alert:
-                logger.debug(f"User alert found by FCM token: {fcm_token}")
+            if result:
+                logger.debug(f"UserAlert found by FCM token: {fcm_token}")
             else:
-                logger.debug(f"User alert not found by FCM token: {fcm_token}")
+                logger.debug(f"UserAlert not found by FCM token: {fcm_token}")
                 
-            return alert
-            
+            return result
         except SQLAlchemyError as e:
             logger.error(f"Error finding user alert by FCM token: {e}")
             raise
 
-    @inject_session
-    def find_by_alert_enabled(self, session: Session, alert_enabled: bool = True, limit: int = 100, offset: int = 0) -> List[UserAlert]:
+    def find_by_alert_enabled(self, session: Session, alert_enabled: bool, limit: int = 100, offset: int = 0) -> List[UserAlert]:
         """
-        알림 활성화 여부로 알림 정보들을 조회합니다.
+        알림 활성화 상태별로 사용자를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
             alert_enabled: 알림 활성화 여부
-            limit: 조회 제한 수
-            offset: 조회 시작 위치
+            limit: 조회할 최대 개수
+            offset: 건너뛸 개수
 
         Returns:
-            사용자 알림 정보 엔티티 리스트
+            알림 정보 객체 리스트
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            alerts = session.query(UserAlert).options(
-                joinedload(UserAlert.user)
-            ).filter(
-                UserAlert.alert_flag == alert_enabled
-            ).offset(offset).limit(limit).all()
+            statement = (
+                select(UserAlert)
+                .where(UserAlert.is_alerted == alert_enabled)
+                .limit(limit)
+                .offset(offset)
+                .order_by(UserAlert.created_at.desc())
+            )
+            result = session.exec(statement).all()
             
-            logger.debug(f"Found {len(alerts)} user alerts with alert_flag: {alert_enabled}")
-            return alerts
-            
+            logger.debug(f"Found {len(result)} users with alert enabled: {alert_enabled}")
+            return result
         except SQLAlchemyError as e:
-            logger.error(f"Error finding user alerts by alert flag: {e}")
+            logger.error(f"Error finding user alerts by alert enabled: {e}")
             raise
 
-    @inject_session
     def find_active_alerts_with_tokens(self, session: Session, limit: int = 100, offset: int = 0) -> List[UserAlert]:
         """
-        활성화된 알림 정보들 중 FCM 토큰이 있는 것들을 조회합니다.
+        FCM 토큰이 있는 활성 알림을 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
-            limit: 조회 제한 수
-            offset: 조회 시작 위치
+            session: SQLModel 세션
+            limit: 조회할 최대 개수
+            offset: 건너뛸 개수
 
         Returns:
-            사용자 알림 정보 엔티티 리스트
+            알림 정보 객체 리스트
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            alerts = session.query(UserAlert).options(
-                joinedload(UserAlert.user)
-            ).filter(
-                and_(
-                    UserAlert.alert_flag == True,
-                    UserAlert.fcm_token != None
-                )
-            ).offset(offset).limit(limit).all()
+            statement = (
+                select(UserAlert)
+                .where(UserAlert.is_alerted == True)
+                .where(UserAlert.fcm_token.is_not(None))
+                .limit(limit)
+                .offset(offset)
+                .order_by(UserAlert.created_at.desc())
+            )
+            result = session.exec(statement).all()
             
-            logger.debug(f"Found {len(alerts)} active user alerts with FCM tokens")
-            return alerts
-            
+            logger.debug(f"Found {len(result)} active alerts with FCM tokens")
+            return result
         except SQLAlchemyError as e:
-            logger.error(f"Error finding active user alerts with tokens: {e}")
+            logger.error(f"Error finding active alerts with tokens: {e}")
             raise
 
-    @transactional
-    def update(self, session: Session, user_alert: UserAlert) -> UserAlert:
+    def update(self, session: Session, alert: UserAlert) -> UserAlert:
         """
-        사용자 알림 정보를 업데이트합니다.
+        알림 정보를 업데이트합니다.
 
         Args:
-            session: 데이터베이스 세션
-            user_alert: 업데이트할 사용자 알림 정보 엔티티
+            session: SQLModel 세션
+            alert: 업데이트할 알림 정보 객체
 
         Returns:
-            업데이트된 사용자 알림 정보 엔티티
+            업데이트된 알림 정보 객체
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            user_alert.updated_at = datetime.utcnow()
-            session.merge(user_alert)
+            session.add(alert)
             session.flush()
-            
-            logger.debug(f"User alert updated: {user_alert.user_id}")
-            return user_alert
-            
+            session.refresh(alert)
+            logger.debug(f"UserAlert updated for user: {alert.user_id}")
+            return alert
         except SQLAlchemyError as e:
             logger.error(f"Error updating user alert: {e}")
             raise
 
-    @transactional
-    def delete(self, session: Session, user_alert: UserAlert) -> bool:
+    def delete(self, session: Session, alert: UserAlert) -> bool:
         """
-        사용자 알림 정보를 삭제합니다.
+        알림 정보를 삭제합니다.
 
         Args:
-            session: 데이터베이스 세션
-            user_alert: 삭제할 사용자 알림 정보 엔티티
+            session: SQLModel 세션
+            alert: 삭제할 알림 정보 객체
 
         Returns:
             삭제 성공 여부
@@ -217,120 +202,114 @@ class UserAlertRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            session.delete(user_alert)
+            session.delete(alert)
             session.flush()
-            
-            logger.debug(f"User alert deleted: {user_alert.user_id}")
+            logger.debug(f"UserAlert deleted for user: {alert.user_id}")
             return True
-            
         except SQLAlchemyError as e:
             logger.error(f"Error deleting user alert: {e}")
             raise
 
-    @inject_session
     def find_all(self, session: Session, limit: int = 100, offset: int = 0) -> List[UserAlert]:
         """
-        모든 사용자 알림 정보를 조회합니다.
+        모든 알림 정보를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
-            limit: 조회 제한 수
-            offset: 조회 시작 위치
+            session: SQLModel 세션
+            limit: 조회할 최대 개수
+            offset: 건너뛸 개수
 
         Returns:
-            사용자 알림 정보 엔티티 리스트
+            알림 정보 객체 리스트
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            alerts = session.query(UserAlert).options(
-                joinedload(UserAlert.user)
-            ).offset(offset).limit(limit).all()
+            statement = (
+                select(UserAlert)
+                .limit(limit)
+                .offset(offset)
+                .order_by(UserAlert.created_at.desc())
+            )
+            result = session.exec(statement).all()
             
-            logger.debug(f"Found {len(alerts)} user alerts")
-            return alerts
-            
+            logger.debug(f"Found {len(result)} user alerts")
+            return result
         except SQLAlchemyError as e:
             logger.error(f"Error finding all user alerts: {e}")
             raise
 
-    @inject_session
     def count(self, session: Session) -> int:
         """
-        전체 사용자 알림 정보 수를 조회합니다.
+        전체 알림 정보 수를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
 
         Returns:
-            전체 사용자 알림 정보 수
+            알림 정보 수
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            count = session.query(func.count(UserAlert.user_id)).scalar()
+            statement = select(func.count(UserAlert.user_id))
+            result = session.exec(statement).one()
             
-            logger.debug(f"Total user alert count: {count}")
-            return count
-            
+            logger.debug(f"Total user alert count: {result}")
+            return result
         except SQLAlchemyError as e:
             logger.error(f"Error counting user alerts: {e}")
             raise
 
-    @inject_session
-    def count_by_alert_enabled(self, session: Session, alert_enabled: bool = True) -> int:
+    def count_by_alert_enabled(self, session: Session, is_alerted: bool) -> int:
         """
-        알림 활성화 여부별 사용자 수를 조회합니다.
+        알림 활성화 상태별 사용자 수를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
-            alert_enabled: 알림 활성화 여부
+            session: SQLModel 세션
+            is_alerted: 알림 활성화 여부
 
         Returns:
-            알림 활성화 여부별 사용자 수
+            사용자 수
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            count = session.query(func.count(UserAlert.user_id)).filter(
-                UserAlert.alert_flag == alert_enabled
-            ).scalar()
+            statement = select(func.count(UserAlert.user_id)).where(UserAlert.is_alerted == is_alerted)
+            result = session.exec(statement).one()
             
-            logger.debug(f"User alert count for enabled {alert_enabled}: {count}")
-            return count
-            
+            logger.debug(f"User count with alert enabled {is_alerted}: {result}")
+            return result
         except SQLAlchemyError as e:
-            logger.error(f"Error counting user alerts by alert flag: {e}")
+            logger.error(f"Error counting users by alert enabled: {e}")
             raise
 
-    @inject_session
     def count_active_with_tokens(self, session: Session) -> int:
         """
-        활성화된 알림 정보 중 FCM 토큰이 있는 사용자 수를 조회합니다.
+        FCM 토큰이 있는 활성 알림 수를 조회합니다.
 
         Args:
-            session: 데이터베이스 세션
+            session: SQLModel 세션
 
         Returns:
-            활성화된 알림 정보 중 FCM 토큰이 있는 사용자 수
+            활성 알림 수
 
         Raises:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            count = session.query(func.count(UserAlert.user_id)).filter(
-                and_(
-                    UserAlert.alert_flag == True,
-                    UserAlert.fcm_token != None
-                )
-            ).scalar()
+            statement = (
+                select(func.count(UserAlert.user_id))
+                .where(UserAlert.is_alerted == True)
+                .where(UserAlert.fcm_token.is_not(None))
+            )
+            result = session.exec(statement).one()
             
-            logger.debug(f"Active user alert count with FCM tokens: {count}")
-            return count
-            
+            logger.debug(f"Active alerts with FCM tokens count: {result}")
+            return result
         except SQLAlchemyError as e:
-            logger.error(f"Error counting active user alerts with tokens: {e}")
+            logger.error(f"Error counting active alerts with tokens: {e}")
             raise 

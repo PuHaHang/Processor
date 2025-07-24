@@ -2,19 +2,19 @@
 Recipe 도메인 모델 정의
 
 이 모듈은 레시피 관련 데이터베이스 모델을 정의합니다.
+SQLModel을 사용하여 타입 안전성과 데이터 검증을 제공합니다.
 ERD 구조에 따라 레시피 정보를 여러 테이블로 분리하여 관리합니다.
+사용자 ID는 ULID 형태로 참조됩니다.
 """
 
 from datetime import datetime
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from enum import Enum
 
+from sqlmodel import SQLModel, Field, Relationship, Column
 from sqlalchemy import String, Integer, DateTime, ForeignKey, UniqueConstraint, Index
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
-
-from ...common.database import Base
 
 # Forward reference를 위한 TYPE_CHECKING
 if TYPE_CHECKING:
@@ -31,347 +31,266 @@ class RecipeLanguage(str, Enum):
 
 class RecipeDifficulty(str, Enum):
     """레시피 난이도 enum"""
-    very_easy = "very_easy"
-    easy = "easy"
-    normal = "normal"
-    hard = "hard"
-    very_hard = "very_hard"
+    VERY_EASY = "VERY_EASY"
+    EASY = "EASY"
+    NORMAL = "NORMAL"
+    HARD = "HARD"
+    VERY_HARD = "VERY_HARD"
 
 
 class RecipeState(str, Enum):
     """레시피 정제 현황 enum"""
     PENDING = "PENDING"
+    VERIFYING = "VERIFYING"
+    TRANSFORMING = "TRANSFORMING"
     PROCESSING = "PROCESSING"
+    EVALUATING = "EVALUATING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
 
 
-class RecipeBase(Base):
+class RecipeBase(SQLModel, table=True):
     """레시피 기본 정보 테이블"""
     __tablename__ = "recipe_bases"
 
-    recipe_base_id: Mapped[int] = mapped_column(
-        Integer,
+    recipe_base_id: Optional[int] = Field(
+        default=None,
         primary_key=True,
-        autoincrement=True,
-        comment="레시피 원본 ID"
+        description="레시피 원본 ID"
     )
     
-    chksum: Mapped[str] = mapped_column(
-        String(256),
-        nullable=False,
+    checksum: str = Field(
         unique=True,
-        comment="url sha256 해싱 값"
+        max_length=256,
+        description="url sha256 해싱 값"
     )
     
-    thumbnail: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="레시피 대표 사진 URL"
+    thumbnail: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="레시피 대표 사진 URL"
     )
     
-    referrer: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        JSONB,
-        nullable=True,
-        comment="컨텐츠 소스 (platform, url)"
+    reference: Optional[Dict[str, Any]] = Field(
+        default=None,
+        sa_column=Column(JSONB),
+        description="컨텐츠 소스 (platform, url, metadata)"
     )
     
-    reference_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        JSONB,
-        nullable=True,
-        comment="컨텐츠 메타데이터"
-    )
-    
-    view_count: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
+    view_count: int = Field(
         default=0,
-        comment="레시피 조회 횟수"
+        description="레시피 조회 횟수"
     )
     
-    servings: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="제공량"
+    servings: Optional[int] = Field(
+        default=None,
+        description="제공량"
     )
     
-    difficulty: Mapped[Optional[RecipeDifficulty]] = mapped_column(
-        String(20),
-        nullable=True,
-        comment="요리 난이도"
+    difficulty: Optional[RecipeDifficulty] = Field(
+        default=None,
+        description="요리 난이도"
     )
     
-    estimated_time: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="추정 요리 소요 시간(분)"
+    estimated_time: Optional[int] = Field(
+        default=None,
+        description="추정 요리 소요 시간(분)"
     )
     
     # 감사 필드
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        comment="생성 시간"
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        description="생성 시간"
     )
     
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-        comment="수정 시간"
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column_kwargs={"onupdate": datetime.now},
+        description="수정 시간"
     )
     
     # 관계 설정
-    contents: Mapped[List["RecipeBaseContent"]] = relationship(
-        "RecipeBaseContent",
+    recipe_base_content: List["RecipeBaseContent"] = Relationship(
         back_populates="recipe_base",
-        cascade="all, delete-orphan"
-    )
-    
-    status: Mapped[Optional["RecipeBaseState"]] = relationship(
-        "RecipeBaseState",
-        back_populates="recipe_base",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )
-    
-    recipes: Mapped[List["Recipe"]] = relationship(
-        "Recipe",
-        back_populates="recipe_base",
-        cascade="all, delete-orphan"
-    )
-    
-    # 인덱스 설정
-    __table_args__ = (
-        Index('idx_recipe_bases_chksum', 'chksum'),
-        Index('idx_recipe_bases_difficulty', 'difficulty'),
-        Index('idx_recipe_bases_view_count', 'view_count'),
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
 
     def __repr__(self) -> str:
-        return f"<RecipeBase(recipe_base_id={self.recipe_base_id}, chksum={self.chksum})>"
+        return f"<RecipeBase(recipe_base_id={self.recipe_base_id}, checksum={self.checksum})>"
 
 
-class RecipeBaseContent(Base):
+class RecipeBaseContent(SQLModel, table=True):
     """레시피 컨텐츠 정보 테이블"""
-    __tablename__ = "recipe_bases_content"
+    __tablename__ = "recipe_base_contents"
     
-    recipe_base_content_id: Mapped[int] = mapped_column(
-        Integer,
+    recipe_base_content_id: Optional[int] = Field(
+        default=None,
         primary_key=True,
-        autoincrement=True,
-        comment="레시피 컨텐츠 ID"
+        description="레시피 컨텐츠 ID"
     )
     
-    recipe_base_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("recipe_bases.recipe_base_id", ondelete="CASCADE"),
-        nullable=False,
-        comment="레시피 원본 ID"
+    recipe_base_id: int = Field(
+        foreign_key="recipe_bases.recipe_base_id",
+        description="레시피 원본 ID"
     )
     
-    title: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-        comment="레시피 제목"
+    title: str = Field(
+        max_length=30,
+        description="레시피 제목"
     )
     
-    author: Mapped[Optional[str]] = mapped_column(
-        String(24),
-        nullable=True,
-        comment="원작자"
+    author: Optional[str] = Field(
+        default=None,
+        max_length=24,
+        description="원작자"
     )
     
-    ingredients: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(
-        JSONB,
-        nullable=True,
-        comment="재료 리스트 [{ ingredient_id, ingredient_name, ingredient_amount, ingredient_unit }]"
+    ingredients: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        sa_column=Column(JSONB),
+        description="재료 리스트 [{ ingredient_id, ingredient_name, ingredient_amount, ingredient_unit }]"
     )
     
-    stages: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        JSONB,
-        nullable=True,
-        comment="요리 과정 { step, timeline, description }"
+    stages: Optional[Dict[str, Any]] = Field(
+        default=None,
+        sa_column=Column(JSONB),
+        description="요리 과정 { step, timeline, description }"
     )
     
-    language: Mapped[RecipeLanguage] = mapped_column(
-        String(5),
-        nullable=False,
-        comment="언어"
+    language: RecipeLanguage = Field(
+        description="언어"
     )
     
-    model_name: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-        comment="정제 시 사용한 모델 버전"
+    model_name: str = Field(
+        max_length=255,
+        description="정제 시 사용한 모델 버전"
     )
     
     # 감사 필드
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        comment="생성 시간"
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        description="생성 시간"
     )
     
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-        comment="수정 시간"
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column_kwargs={"onupdate": datetime.now},
+        description="수정 시간"
     )
     
     # 관계 설정
-    recipe_base: Mapped["RecipeBase"] = relationship(
-        "RecipeBase",
-        back_populates="contents"
+    recipe_base: "RecipeBase" = Relationship(back_populates="recipe_base_content")
+
+    recipe_base_state: Optional["RecipeBaseState"] = Relationship(
+        back_populates="recipe_base_content",
+        sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"}
     )
-    
-    # 유니크 제약 조건
-    __table_args__ = (
-        UniqueConstraint('language', 'model_name', name='uq_recipe_bases_content_language_model'),
-        Index('idx_recipe_bases_content_recipe_base_id', 'recipe_base_id'),
-        Index('idx_recipe_bases_content_language', 'language'),
-        Index('idx_recipe_bases_content_model_name', 'model_name'),
+
+    recipe: List["Recipe"] = Relationship(
+        back_populates="recipe_base_content",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
 
     def __repr__(self) -> str:
         return f"<RecipeBaseContent(recipe_base_content_id={self.recipe_base_content_id}, title={self.title})>"
 
 
-class RecipeBaseState(Base):
+class RecipeBaseState(SQLModel, table=True):
     """레시피 베이스 상태 테이블"""
-    __tablename__ = "recipe_bases_status"
+    __tablename__ = "recipe_base_states"
     
-    recipe_base_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("recipe_bases.recipe_base_id", ondelete="CASCADE"),
+    recipe_base_content_id: int = Field(
         primary_key=True,
-        comment="레시피 원본 ID"
+        foreign_key="recipe_base_contents.recipe_base_content_id",
+        description="레시피 원본 ID"
     )
     
-    state: Mapped[RecipeState] = mapped_column(
-        String(20),
-        nullable=False,
+    state: RecipeState = Field(
         default=RecipeState.PENDING,
-        comment="레시피 정제 현황"
+        description="레시피 정제 현황"
     )
     
     # 관계 설정
-    recipe_base: Mapped["RecipeBase"] = relationship(
-        "RecipeBase",
-        back_populates="status"
-    )
+    recipe_base_content: "RecipeBaseContent" = Relationship(back_populates="recipe_base_state")
 
     def __repr__(self) -> str:
-        return f"<RecipeBaseState(recipe_base_id={self.recipe_base_id}, state={self.state})>"
+        return f"<RecipeBaseState(recipe_base_content_id={self.recipe_base_content_id}, state={self.state})>"
 
 
-class Ingredient(Base):
+class Ingredient(SQLModel, table=True):
     """재료 태그 테이블 (검색용)"""
     __tablename__ = "ingredients"
     
-    id: Mapped[int] = mapped_column(
-        Integer,
+    ingredient_id: Optional[int] = Field(
+        default=None,
         primary_key=True,
-        autoincrement=True,
-        comment="재료 ID"
+        description="재료 ID"
     )
     
-    ingredient: Mapped[str] = mapped_column(
-        String(32),
-        nullable=False,
-        comment="재료명"
-    )
-    
-    # 인덱스 설정
-    __table_args__ = (
-        Index('idx_ingredients_ingredient', 'ingredient'),
+    ingredient: str = Field(
+        max_length=32,
+        description="재료명"
     )
 
     def __repr__(self) -> str:
-        return f"<Ingredient(id={self.id}, ingredient={self.ingredient})>"
+        return f"<Ingredient(ingredient_id={self.ingredient_id}, ingredient={self.ingredient})>"
 
 
-class Recipe(Base):
+class Recipe(SQLModel, table=True):
     """사용자 레시피 테이블"""
     __tablename__ = "recipes"
     
-    recipe_id: Mapped[int] = mapped_column(
-        Integer,
+    recipe_id: Optional[int] = Field(
+        default=None,
         primary_key=True,
-        autoincrement=True,
-        comment="레시피 ID"
+        description="레시피 ID"
     )
     
-    user_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
-        ForeignKey("users.user_id", ondelete="CASCADE"),
-        nullable=False,
-        comment="사용자 ID"
+    user_id: str = Field(
+        foreign_key="users.user_id",
+        description="사용자 ULID"
     )
     
-    recipe_base_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("recipe_bases.recipe_base_id", ondelete="CASCADE"),
-        nullable=False,
-        comment="원본 레시피 ID"
+    recipe_base_content_id: int = Field(
+        foreign_key="recipe_base_contents.recipe_base_content_id",
+        description="원본 레시피 ID"
     )
     
-    title: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="레시피 제목"
+    title: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="레시피 제목"
     )
     
-    ingredients: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(
-        JSONB,
-        nullable=True,
-        comment="재료 리스트 [{ ingredient_id, ingredient_name, ingredient_amount, ingredient_unit }]"
+    ingredients: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        sa_column=Column(JSONB),
+        description="재료 리스트 [{ ingredient_id, ingredient_name, ingredient_amount, ingredient_unit }]"
     )
     
-    stages: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        JSONB,
-        nullable=True,
-        comment="요리 과정 { step, timeline, description }"
+    stages: Optional[Dict[str, Any]] = Field(
+        default=None,
+        sa_column=Column(JSONB),
+        description="요리 과정 { step, timeline, description }"
     )
     
     # 감사 필드
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        comment="생성 시간"
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        description="생성 시간"
     )
     
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-        comment="수정 시간"
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column_kwargs={"onupdate": datetime.now},
+        description="수정 시간"
     )
     
     # 관계 설정
-    user: Mapped["User"] = relationship(
-        "User",
-        back_populates="recipes"
-    )
-    
-    recipe_base: Mapped["RecipeBase"] = relationship(
-        "RecipeBase",
-        back_populates="recipes"
-    )
-    
-    # 인덱스 설정
-    __table_args__ = (
-        Index('idx_recipes_user_id', 'user_id'),
-        Index('idx_recipes_recipe_base_id', 'recipe_base_id'),
-        Index('idx_recipes_created_at', 'created_at'),
-    )
+    recipe_base_content: "RecipeBaseContent" = Relationship(back_populates="recipe")
+
+    user: "User" = Relationship(back_populates="recipe")
 
     def __repr__(self) -> str:
         return f"<Recipe(recipe_id={self.recipe_id}, user_id={self.user_id}, title={self.title})>"

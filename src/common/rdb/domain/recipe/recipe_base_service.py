@@ -10,9 +10,9 @@ import hashlib
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-from sqlalchemy.orm import Session, joinedload
+from sqlmodel import Session, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import and_, or_, func
+from sqlalchemy import func
 
 from .models import (
     RecipeBase, RecipeBaseContent, RecipeBaseState, Ingredient,
@@ -26,7 +26,7 @@ from .repository import (
     RecipeBaseRepository, RecipeBaseContentRepository, RecipeBaseStateRepository,
     IngredientRepository
 )
-from ...common.dependency_injection import inject_session, transactional
+
 
 import logging
 
@@ -39,10 +39,9 @@ class RecipeBaseService:
     def __init__(self):
         self.recipe_base_repository = RecipeBaseRepository()
         self.recipe_base_content_repository = RecipeBaseContentRepository()
-        self.recipe_base_status_repository = RecipeBaseStateRepository()
+        self.recipe_base_state_repository = RecipeBaseStateRepository()
         self.ingredient_repository = IngredientRepository()
 
-    @transactional
     def create_recipe_base(self, session: Session, dto: CreateRecipeBaseDto) -> RecipeBase:
         """
         새로운 레시피 베이스를 생성합니다.
@@ -60,15 +59,14 @@ class RecipeBaseService:
         """
         try:
             # URL 해시 생성
-            url = dto.referrer.get('url', '') if dto.referrer else ''
-            chksum = self._generate_checksum(url)
+            url = dto.reference.get('url', '') if dto.reference else ''
+            checksum = self._generate_checksum(url)
             
             # 기본 레시피 베이스 생성
             recipe_base = RecipeBase(
-                chksum=chksum,
+                checksum=checksum,
                 thumbnail=dto.thumbnail,
-                referrer=dto.referrer,
-                metadata=dto.metadata,
+                reference=dto.reference,
                 servings=dto.servings,
                 difficulty=dto.difficulty,
                 estimated_time=dto.estimated_time
@@ -97,12 +95,12 @@ class RecipeBaseService:
                         [ingredient['ingredient_name'] for ingredient in dto.ingredients]
                     )
             
-            # 레시피 베이스 상태 생성
-            status = RecipeBaseState(
-                recipe_base_id=recipe_base.recipe_base_id,
-                state=RecipeState.PENDING
-            )
-            self.recipe_base_status_repository.create(session, status)
+                # 레시피 베이스 상태 생성
+                recipe_base_state = RecipeBaseState(
+                    recipe_base_content_id=content.recipe_base_content_id,
+                    state=RecipeState.PENDING
+                )
+                self.recipe_base_state_repository.create(session, recipe_base_state)
             
             logger.info(f"Recipe base created: {recipe_base.recipe_base_id}")
             return recipe_base
@@ -128,7 +126,6 @@ class RecipeBaseService:
             logger.error(f"Error creating ingredient tags: {e}")
             raise
 
-    @inject_session
     def get_recipe_base_by_id(self, session: Session, recipe_base_id: int) -> Optional[RecipeBase]:
         """
         ID로 레시피 베이스를 조회합니다.
@@ -158,14 +155,13 @@ class RecipeBaseService:
             logger.error(f"Error getting recipe base by ID: {e}")
             raise
 
-    @inject_session
-    def get_recipe_base_by_checksum(self, session: Session, chksum: str) -> Optional[RecipeBase]:
+    def get_recipe_base_by_checksum(self, session: Session, checksum: str) -> Optional[RecipeBase]:
         """
         체크섬으로 레시피 베이스를 조회합니다.
 
         Args:
             session: 데이터베이스 세션
-            chksum: URL 해시값
+            checksum: URL 해시값
 
         Returns:
             레시피 베이스 객체 또는 None
@@ -174,12 +170,12 @@ class RecipeBaseService:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            recipe_base = self.recipe_base_repository.find_by_checksum(session, chksum)
+            recipe_base = self.recipe_base_repository.find_by_checksum(session, checksum)
             
             if recipe_base:
-                logger.debug(f"Recipe base found by checksum: {chksum}")
+                logger.debug(f"Recipe base found by checksum: {checksum}")
             else:
-                logger.debug(f"Recipe base not found by checksum: {chksum}")
+                logger.debug(f"Recipe base not found by checksum: {checksum}")
                 
             return recipe_base
             
@@ -187,7 +183,6 @@ class RecipeBaseService:
             logger.error(f"Error getting recipe base by checksum: {e}")
             raise
 
-    @inject_session
     def get_recipe_bases_by_difficulty(self, session: Session, difficulty: RecipeDifficulty, limit: int = 100, offset: int = 0) -> List[RecipeBase]:
         """
         난이도별 레시피 베이스들을 조회합니다.
@@ -214,7 +209,6 @@ class RecipeBaseService:
             logger.error(f"Error getting recipe bases by difficulty: {e}")
             raise
 
-    @inject_session
     def get_popular_recipe_bases(self, session: Session, limit: int = 100, offset: int = 0) -> List[RecipeBase]:
         """
         인기 레시피 베이스들을 조회합니다.
@@ -240,7 +234,6 @@ class RecipeBaseService:
             logger.error(f"Error getting popular recipe bases: {e}")
             raise
 
-    @transactional
     def delete_recipe_base(self, session: Session, recipe_base_id: int) -> bool:
         """
         레시피 베이스를 삭제합니다.
@@ -272,7 +265,6 @@ class RecipeBaseService:
             logger.error(f"Error deleting recipe base: {e}")
             raise
 
-    @transactional
     def update_recipe_base(self, session: Session, dto: UpdateRecipeBaseDto) -> Optional[RecipeBase]:
         """
         레시피 베이스 정보를 수정합니다.
@@ -289,10 +281,10 @@ class RecipeBaseService:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            recipe_base = session.query(RecipeBase).options(
-                joinedload(RecipeBase.contents),
-                joinedload(RecipeBase.status)
-            ).filter(RecipeBase.recipe_base_id == dto.recipe_base_id).first()
+            recipe_base = session.exec(
+                select(RecipeBase, RecipeBaseContent, RecipeBaseState)
+                .where(RecipeBase.recipe_base_id == dto.recipe_base_id)
+            ).first()
             
             if not recipe_base:
                 logger.warning(f"Recipe base not found for update: {dto.recipe_base_id}")
@@ -308,7 +300,7 @@ class RecipeBaseService:
                     if field in update_fields:
                         setattr(recipe_base, field, update_fields[field])
                 
-                recipe_base.updated_at = datetime.utcnow()
+                recipe_base.updated_at = datetime.now()
                 updated_sections.append('base')
             
             # 컨텐츠 정보 업데이트
@@ -331,7 +323,7 @@ class RecipeBaseService:
                     if field in update_fields:
                         setattr(content, field, update_fields[field])
                 
-                content.updated_at = datetime.utcnow()
+                content.updated_at = datetime.now()
                 updated_sections.append('content')
                 
                 # 재료가 업데이트된 경우 태그 재생성
@@ -353,7 +345,6 @@ class RecipeBaseService:
             logger.error(f"Error updating recipe base: {e}")
             raise
 
-    @transactional
     def increment_view_count(self, session: Session, recipe_base_id: int) -> Optional[RecipeBase]:
         """
         레시피 베이스의 조회수를 증가시킵니다.
@@ -384,7 +375,6 @@ class RecipeBaseService:
             logger.error(f"Error incrementing recipe base view count: {e}")
             raise
 
-    @inject_session
     def get_all_recipe_bases(self, session: Session, limit: int = 100, offset: int = 0) -> List[RecipeBase]:
         """
         모든 레시피 베이스를 조회합니다.
@@ -410,7 +400,6 @@ class RecipeBaseService:
             logger.error(f"Error getting all recipe bases: {e}")
             raise
 
-    @inject_session
     def get_recipe_base_count(self, session: Session) -> int:
         """
         전체 레시피 베이스 수를 조회합니다.
@@ -434,7 +423,6 @@ class RecipeBaseService:
             logger.error(f"Error getting recipe base count: {e}")
             raise
 
-    @inject_session
     def get_recipe_base_statistics(self, session: Session) -> Dict[str, Any]:
         """
         레시피 베이스 통계 정보를 조회합니다.
@@ -450,31 +438,33 @@ class RecipeBaseService:
         """
         try:
             # 총 레시피 베이스 수
-            total_bases = session.query(func.count(RecipeBase.recipe_base_id)).scalar()
+            total_bases = session.exec(select(func.count(RecipeBase.recipe_base_id))).first()
             
             # 난이도별 통계
-            difficulty_stats = session.query(
-                RecipeBase.difficulty,
-                func.count(RecipeBase.recipe_base_id).label('count')
-            ).group_by(RecipeBase.difficulty).all()
+            difficulty_stats = session.exec(
+                select(RecipeBase.difficulty, func.count(RecipeBase.recipe_base_id).label('count'))
+                .group_by(RecipeBase.difficulty)
+            ).all()
             
             # 언어별 통계
-            language_stats = session.query(
-                RecipeBaseContent.language,
-                func.count(RecipeBaseContent.recipe_base_content_id).label('count')
-            ).group_by(RecipeBaseContent.language).all()
+            language_stats = session.exec(
+                select(RecipeBaseContent.language, func.count(RecipeBaseContent.recipe_base_content_id).label('count'))
+                .group_by(RecipeBaseContent.language)
+            ).all()
             
             # 상태별 통계
-            status_stats = session.query(
-                RecipeBaseState.state,
-                func.count(RecipeBaseState.recipe_base_id).label('count')
-            ).group_by(RecipeBaseState.state).all()
+            status_stats = session.exec(
+                select(RecipeBaseState.state, func.count(RecipeBaseState.recipe_base_content_id).label('count'))
+                .group_by(RecipeBaseState.state)
+            ).all()
             
             # 조회수 통계
-            view_stats = session.query(
-                func.avg(RecipeBase.view_count).label('avg_views'),
-                func.max(RecipeBase.view_count).label('max_views'),
-                func.min(RecipeBase.view_count).label('min_views')
+            view_stats = session.exec(
+                select(
+                    func.avg(RecipeBase.view_count).label('avg_views'),
+                    func.max(RecipeBase.view_count).label('max_views'),
+                    func.min(RecipeBase.view_count).label('min_views')
+                )
             ).first()
             
             statistics = {
@@ -496,7 +486,6 @@ class RecipeBaseService:
             logger.error(f"Error getting recipe base statistics: {e}")
             raise
 
-    @inject_session
     def search_recipe_bases(self, session: Session, dto: SearchRecipeBasesDto) -> List[RecipeBase]:
         """
         다양한 조건으로 레시피 베이스를 검색합니다.
@@ -512,10 +501,10 @@ class RecipeBaseService:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            query = session.query(RecipeBase).options(
-                joinedload(RecipeBase.contents),
-                joinedload(RecipeBase.status)
-            )
+            query = session.exec(
+                select(RecipeBase, RecipeBaseContent, RecipeBaseState)
+                .where(RecipeBase.recipe_base_id == dto.recipe_base_id)
+            ).first()
             
             # 기본 정보 필터
             if dto.difficulty:
@@ -548,8 +537,7 @@ class RecipeBaseService:
             logger.error(f"Error searching recipe bases: {e}")
             raise
 
-    @transactional
-    def update_recipe_base_status(self, session: Session, recipe_base_id: int, state: RecipeState) -> Optional[RecipeBaseState]:
+    def update_recipe_base_state(self, session: Session, recipe_base_id: int, target_state: RecipeState) -> Optional[RecipeState]:
         """
         레시피 베이스의 상태를 업데이트합니다.
 
@@ -565,24 +553,24 @@ class RecipeBaseService:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            status = self.recipe_base_status_repository.find_by_recipe_base_id(session, recipe_base_id)
+            state = self.recipe_base_state_repository.find_by_recipe_base_content_id(session, recipe_base_id)
             
-            if not status:
+            if not state:
                 # 상태가 없으면 새로 생성
-                status = RecipeBaseState(
-                    recipe_base_id=recipe_base_id,
-                    state=state
+                state = RecipeBaseState(
+                    recipe_base_content_id=recipe_base_id,
+                    state=target_state
                 )
-                status = self.recipe_base_status_repository.create(session, status)
+                state = self.recipe_base_state_repository.create(session, state)
             else:
-                status.state = state
-                status = self.recipe_base_status_repository.update(session, status)
+                state.state = target_state
+                state = self.recipe_base_state_repository.update(session, state)
             
-            logger.info(f"Recipe base status updated: {recipe_base_id}, state: {state}")
-            return status
+            logger.info(f"Recipe base state updated: {recipe_base_id}, state: {target_state}")
+            return state
             
         except SQLAlchemyError as e:
-            logger.error(f"Error updating recipe base status: {e}")
+            logger.error(f"Error updating recipe base state: {e}")
             raise
 
     def _generate_checksum(self, url: str) -> str:

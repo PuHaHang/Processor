@@ -7,7 +7,7 @@ Repository 패턴을 통해 데이터 접근 로직을 분리하고 서비스 �
 
 from .recipe_base_repository import RecipeBaseRepository
 from .recipe_base_content_repository import RecipeBaseContentRepository
-from .recipe_base_status_repository import RecipeBaseStateRepository
+from .recipe_base_state_repository import RecipeBaseStateRepository
 from .recipe_repository import RecipeRepository
 from .ingredient_repository import IngredientRepository
 
