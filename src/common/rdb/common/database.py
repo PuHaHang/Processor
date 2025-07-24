@@ -1,0 +1,190 @@
+"""
+데이터베이스 연결 및 세션 관리를 위한 SQLModel 설정 모듈
+
+이 모듈은 PostgreSQL 데이터베이스와의 연결을 관리하고,
+SQLModel 세션을 통한 데이터베이스 작업을 지원합니다.
+SQLModel 프레임워크를 최대한 활용하여 타입 안전성과 성능을 보장합니다.
+"""
+
+import os
+import logging
+from typing import Generator, Optional
+from contextlib import contextmanager
+
+from sqlmodel import create_engine, Session, SQLModel, text
+from sqlalchemy import event, MetaData
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.pool import QueuePool
+
+# 로깅 설정
+logger = logging.getLogger(__name__)
+
+# SQLModel 메타데이터 설정 (naming_convention을 통한 제약조건 이름 자동 생성)
+naming_convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+
+
+class DatabaseManager:
+    """SQLModel 기반 데이터베이스 연결과 세션 관리를 담당하는 클래스"""
+
+    def __init__(self):
+        self.engine = None
+        self._is_initialized = False
+
+    def initialize(
+        self,
+        database_url: Optional[str] = None,
+        echo: bool = False,
+        pool_size: int = 10,
+        max_overflow: int = 20,
+        pool_timeout: int = 30,
+        pool_recycle: int = 3600
+    ) -> None:
+        """
+        SQLModel 데이터베이스 연결을 초기화합니다.
+
+        Args:
+            database_url: 데이터베이스 URL (기본값: 환경변수에서 읽음)
+            echo: SQL 쿼리 로깅 여부
+            pool_size: 커넥션 풀 기본 크기
+            max_overflow: 커넥션 풀 최대 추가 연결 수
+            pool_timeout: 커넥션 대기 시간(초)
+            pool_recycle: 커넥션 재활용 시간(초)
+        """
+        if self._is_initialized:
+            logger.warning("Database is already initialized")
+            return
+
+        # 데이터베이스 URL 설정
+        if database_url is None:
+            database_url = self._get_database_url()
+
+        try:
+            # SQLModel에 최적화된 엔진 생성
+            self.engine = create_engine(
+                database_url,
+                echo=echo,
+                poolclass=QueuePool,
+                pool_size=pool_size,
+                max_overflow=max_overflow,
+                pool_timeout=pool_timeout,
+                pool_recycle=pool_recycle,
+                pool_pre_ping=True,  # 연결 상태 확인
+                future=True,  # SQLAlchemy 2.0 스타일 사용
+            )
+
+            # 메타데이터 naming convention 설정
+            if SQLModel.metadata.naming_convention != naming_convention:
+                SQLModel.metadata.naming_convention = naming_convention
+
+            # 연결 이벤트 리스너 등록
+            self._setup_event_listeners()
+
+            self._is_initialized = True
+            logger.info("SQLModel database initialized successfully")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
+            raise
+
+    def _get_database_url(self) -> str:
+        """환경변수로부터 데이터베이스 URL을 구성합니다."""
+        host = os.getenv("POSTGRES_HOST", "localhost")
+        port = os.getenv("POSTGRES_PORT", "5432")
+        database = os.getenv("POSTGRES_DB", "postgres")
+        username = os.getenv("POSTGRES_USER", "postgres")
+        password = os.getenv("POSTGRES_PW", "")
+        return f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}"
+
+    def _setup_event_listeners(self) -> None:
+        """SQLAlchemy 이벤트 리스너를 설정합니다."""
+        
+        if self.engine is None:
+            return
+            
+        @event.listens_for(self.engine, "connect")
+        def set_postgresql_settings(dbapi_connection, connection_record):
+            """연결 시 PostgreSQL 설정을 적용합니다."""
+            if self.engine is not None and self.engine.dialect.name == "postgresql":
+                # PostgreSQL 특화 설정
+                with dbapi_connection.cursor() as cursor:
+                    cursor.execute("SET timezone = 'UTC'")
+                    cursor.execute("SET statement_timeout = '300s'")
+
+    def create_tables(self) -> None:
+        """모든 SQLModel 테이블을 생성합니다."""
+        if not self._is_initialized or self.engine is None:
+            raise RuntimeError("Database not initialized")
+
+        try:
+            SQLModel.metadata.create_all(bind=self.engine)
+            logger.info("SQLModel tables created successfully")
+        except Exception as e:
+            logger.error(f"Failed to create tables: {e}")
+            raise
+
+    def drop_tables(self) -> None:
+        """모든 SQLModel 테이블을 삭제합니다."""
+        if not self._is_initialized or self.engine is None:
+            raise RuntimeError("Database not initialized")
+
+        try:
+            SQLModel.metadata.drop_all(bind=self.engine)
+            logger.info("SQLModel tables dropped successfully")
+        except Exception as e:
+            logger.error(f"Failed to drop tables: {e}")
+            raise
+
+    def get_session(self) -> Session:
+        """새로운 SQLModel 세션을 생성합니다."""
+        if not self._is_initialized or self.engine is None:
+            raise RuntimeError("Database not initialized")
+
+        return Session(self.engine)
+
+    @contextmanager
+    def session_scope(self) -> Generator[Session, None, None]:
+        """
+        자동 커밋/롤백이 적용되는 SQLModel 세션 컨텍스트 매니저
+
+        Usage:
+            with db_manager.session_scope() as session:
+                # SQLModel 데이터베이스 작업 수행
+                session.add(user)
+                session.commit()
+                # 자동으로 커백됨
+        """
+        session = self.get_session()
+        try:
+            yield session
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Session rolled back due to: {e}")
+            raise
+        finally:
+            session.close()
+
+    def close(self) -> None:
+        """데이터베이스 연결을 종료합니다."""
+        if self.engine:
+            self.engine.dispose()
+            self._is_initialized = False
+            logger.info("Database connection closed")
+    def health_check(self) -> bool:
+        """데이터베이스 연결 상태를 확인합니다."""
+        if not self._is_initialized or self.engine is None:
+            return False
+        
+        try:
+            with self.session_scope() as session:
+                session.exec(text("SELECT 1"))
+                return True
+        except Exception as e:
+            logger.error(f"Database health check failed: {e}")
+            return False
