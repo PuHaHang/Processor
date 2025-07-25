@@ -56,35 +56,25 @@ class YtDlpDownloader (DownloaderStrategy):
     available_output_ext: list[str] = ["webm"]
     default_output_ext: str = "webm"
 
-    metadata_keys_to_delete: dict[str, Any] = {
-        # Youtube 메타데이터 키 삭제
-        "url": None,
-        "formats": {
-            "url": None,
-            "manifest_url": None,
-            "fragments": None,
+    metadata_keys_to_get: dict[str, Any] = {
+        'id': None,
+        'title': None,
+        'description': None,
+        'duration': None,
+        'thumbnail': None,
+        'channel': None,
+        'channel_url': None,
+        'formats': {
+            'ext': None,
         },
-        "http_headers": None,
-        "thumbnails": None,
-        "view_count": None,
-        "live_status": None,
-        "media_type": None,
-        "release_timestamp": None,
-        "_format_sort_fields": None,
-        "automatic_captions": None,
-        "channel_follower_count": None,
-        "playlist": None,
-        "playlist_index": None,
-        "is_live": None,
-        "was_live": None,
-        "requested_subtitles": None,
-        "epoch": None,
-        "requested_formats": None,
-        "like_count": None,
-        "comment_count": None,
-        "age_limit": None,
-        "tags": None,
-        "categories": None,
+        'webpage_url': None,
+        'playable_in_embed': None,
+        'subtitles': None,
+        'uploader': None,
+        'uploader_id': None,
+        'uploader_url': None,
+        'upload_date': None,
+        'fulltitle': None,
     }
 
     
@@ -265,7 +255,7 @@ class YtDlpDownloader (DownloaderStrategy):
             info = ydl.extract_info(video_url, download=False)
             if info is None:
                 return {}
-            return self._delete_metadata_keys(info) if isinstance(info, dict) else {}
+            return self._get_metadata_by_keys(info)
 
     @ExceptionHandler(
         exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
@@ -363,21 +353,22 @@ class YtDlpDownloader (DownloaderStrategy):
             ydl.extract_info(url, download=False)
         return True
     
-    def _delete_metadata_keys(self, info: dict, keys: dict[str, Any] = metadata_keys_to_delete) -> dict:
+    def _get_metadata_by_keys(self, info: dict, keys: dict[str, Any] = metadata_keys_to_get) -> dict:
+        result = {}
         for key, value in keys.items():
-            if key in info:
-                if value is None:
-                    info.pop(key, None)
-                    continue
-
-                if isinstance(info[key], dict):
-                    info[key] = self._delete_metadata_keys(info[key], value)
-                elif isinstance(info[key], list):
+            if value is None and key in info:
+                if isinstance(info[key], list):
+                    result[key] = []
                     for item in info[key]:
                         if isinstance(item, dict):
-                            info[key] = self._delete_metadata_keys(item, value)
+                            result[key].append(self._get_metadata_by_keys(item, value))
                         else:
-                            info[key] = item
+                            result[key].append(item)
                 else:
-                    info.pop(key, None)
-        return info
+                    result[key] = info[key]
+                continue
+            if isinstance(value, dict):
+                result[key] = self._get_metadata_by_keys(info[key], value)
+            else:
+                pass
+        return result
