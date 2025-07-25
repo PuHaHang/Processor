@@ -41,8 +41,11 @@ class RecipeDifficulty(str, Enum):
 class RecipeState(str, Enum):
     """레시피 정제 현황 enum"""
     PENDING = "PENDING"
+    PENDED = "PENDED"
     VERIFYING = "VERIFYING"
+    VERIFIED = "VERIFIED"
     TRANSFORMING = "TRANSFORMING"
+    TRANSFORMED = "TRANSFORMED"
     PROCESSING = "PROCESSING"
     EVALUATING = "EVALUATING"
     COMPLETED = "COMPLETED"

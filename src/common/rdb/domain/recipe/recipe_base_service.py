@@ -576,3 +576,25 @@ class RecipeBaseService:
     def _generate_checksum(self, url: str) -> str:
         """URL의 SHA256 해시를 생성합니다."""
         return hashlib.sha256(url.encode('utf-8')).hexdigest() 
+    
+    def get_recipe_base_content_by_id(self, session: Session, recipe_base_content_id: int) -> Optional[RecipeBaseContent]:
+        """
+        레시피 베이스 컨텐츠를 조회합니다.
+        """
+        try:
+            recipe_base_content = self.recipe_base_content_repository.find_by_id(session, recipe_base_content_id)
+            return recipe_base_content
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting recipe base content by ID: {e}")
+            raise
+    
+    def update_recipe_base_content(self, session: Session, recipe_base_content: RecipeBaseContent) -> Optional[RecipeBaseContent]:
+        """
+        레시피 베이스 컨텐츠를 업데이트합니다.
+        """
+        try:
+            recipe_base_content = self.recipe_base_content_repository.update(session, recipe_base_content)
+            return recipe_base_content
+        except SQLAlchemyError as e:
+            logger.error(f"Error updating recipe base content: {e}")
+            raise
