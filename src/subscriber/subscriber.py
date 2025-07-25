@@ -1,0 +1,138 @@
+from datetime import datetime
+import json
+import os
+import boto3
+import time
+
+from src.common.rdb.domain.recipe.models import Ingredient, RecipeState
+from src.common.rdb.domain.recipe.recipe_base_service import RecipeBaseService
+from src.common.rdb.domain.recipe.repository.ingredient_repository import IngredientRepository
+
+from ..common.processor.agent import Agent
+from ..common.processor.types.payload import Payload
+from ..common.processor.types import DataType, PayloadStatus
+
+# AWS 세션 생성 (환경변수 또는 IAM 역할 필요)
+sqs = boto3.client('sqs', region_name='ap-northeast-2')  # 서울 리전
+queue_url = os.getenv("AWS_SQS_QUEUE_URL")
+
+processor_agent = Agent()
+
+def process_message(message):
+    # 메시지 처리 로직
+    try:
+        # print(f"📩 Received message: {message['Body']}")
+        json_data = json.loads(message['Body'])
+
+        recipe_base_content_id = json_data['recipe_base_content_id']
+        platform = json_data['platform']
+        source = json_data['source']
+        language = json_data['language']
+        # user_id = json_data['user_id']
+        
+        if platform == "YOUTUBE":
+            payload = Payload(
+                buffer=source.encode('utf-8'),
+                metadata={},
+                data_type=DataType.URL,
+                status=PayloadStatus.INIT,
+                processor=None,
+            )
+        elif platform == "UNKNOWN":
+            payload = Payload(
+                buffer=source.encode('utf-8'),
+                metadata={},
+                data_type=DataType.TEXT,
+                status=PayloadStatus.INIT,
+                processor=None,
+            )
+
+        payload = processor_agent.process(payload, int(recipe_base_content_id), language)
+
+        payload_saver(payload, recipe_base_content_id)
+    except Exception as e:
+        print(f"❌ Error while processing message: {e}")
+
+def payload_saver(payload: Payload, recipe_base_content_id: int):
+    recipe_base_service = RecipeBaseService()
+    ingredient_repository = IngredientRepository()
+
+    data = json.loads(payload.buffer)
+
+    print(data)
+    with processor_agent.db_manager.session_scope() as session:
+        ingredients = []
+        for ingredient in data['ingredients']:
+            if not ingredient_repository.exists_by_name(session, ingredient['name']):
+                ingredient_entity = Ingredient(
+                    ingredient=ingredient['name'],
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                added_ingredient = ingredient_repository.create(session, ingredient_entity)
+            else:
+                added_ingredient = ingredient_repository.find_by_name(session, ingredient['name'])
+
+            ingredients.append(added_ingredient)
+
+        for i, stage in enumerate(data['stages']):
+            for j, ingredient in enumerate(ingredients):
+                data['stages'][i]['description'] = data['stages'][i]['description'].replace(f"{{{j+1}}}", str(ingredient.ingredient_id))
+        
+        for i, ingredient in enumerate(data['ingredients']):
+            ingredient.pop('index')
+            ingredient['ingredient_id'] = ingredients[i].ingredient_id
+            data['ingredients'][i] = ingredient
+        
+        recipe_base_content = recipe_base_service.get_recipe_base_content_by_id(session, recipe_base_content_id)
+
+        recipe_base_content.title = data['title']
+        recipe_base_content.author = data['author']
+        recipe_base_content.ingredients = data['ingredients']
+        recipe_base_content.stages = data['stages']
+        recipe_base_content.updated_at = datetime.now()
+
+        recipe_base_service.update_recipe_base_content(session, recipe_base_content)
+        recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.COMPLETED)
+
+def poll_messages():
+    print("👂 SQS Subscriber is running...")
+    cnt = 0
+    while cnt < 10:
+        # print(queue_url)
+        try:
+            # 메시지 수신 (최대 10개, 최대 20초 대기)
+            response = sqs.receive_message(
+                QueueUrl=queue_url,
+                AttributeNames=['All'],
+                MaxNumberOfMessages=10,
+                WaitTimeSeconds=20,  # long polling
+                VisibilityTimeout=60  # 메시지 처리 시간
+            )
+            cnt += 1
+            if not response:
+                cnt = 0
+                continue
+
+            messages = response.get('Messages', [])
+            print(messages)
+            if not messages:
+                cnt = 0
+                continue
+            
+            print("processing messages")
+            for message in messages:
+                process_message(message)
+
+                # 수신 확인 및 삭제
+                sqs.delete_message(
+                    QueueUrl=queue_url,
+                    ReceiptHandle=message['ReceiptHandle']
+                )
+
+        except Exception as e:
+            print(f"❌ Error while polling: {e}")
+            time.sleep(5)  # 재시도 전 대기
+
+if __name__ == "__main__":
+    poll_messages()
