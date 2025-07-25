@@ -5,11 +5,26 @@
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Tuple
+
+from src.common.processor.types.payload_status import PayloadStatus
 
 from .types import DataType, Payload
 from .processor_type import ProcessorType
 
+def payload_observer(func: Callable) -> Callable:
+    def wrapper(self, payload: Payload, *args, **kwargs):
+        try:
+            payload.status = PayloadStatus.PROCESSING
+            return func(self, payload, *args, **kwargs)
+        except Exception as e:
+            payload.status = PayloadStatus.FAILED
+            raise e
+        finally:
+            payload.status = PayloadStatus.COMPLETED
+
+    return wrapper
 
 class Processor (ABC):
     """
@@ -32,6 +47,7 @@ class Processor (ABC):
     default_output_ext: str
     next_processor: 'Processor'
 
+    @payload_observer
     @abstractmethod
     def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
