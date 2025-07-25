@@ -17,7 +17,4 @@ class PayloadStatus (Enum):
     PROCESSING = "PROCESSING"     # 처리 중
     COMPLETED = "COMPLETED"       # 처리 완료
     FAILED = "FAILED"             # 처리 실패
-    ABORTED = "ABORTED"           # 처리 중단
     CANCELLED = "CANCELLED"       # 처리 취소
-    TIMEOUT = "TIMEOUT"           # 처리 시간 초과
-    ERROR = "ERROR"               # 오류 발생
