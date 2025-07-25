@@ -32,6 +32,7 @@ class RecipeRefinerPrompt:
 ```json
 {
   "title": "[요리 이름]",
+  "author": "[작성자]",
   "ingredients": [
     {
       "index": 1,
@@ -46,7 +47,7 @@ class RecipeRefinerPrompt:
       "unit": "[단위, 없으면 비워둠]"
     }
   ],
-  "steps": [
+  "stages": [
     {
       "step": 1,
       "start_time": "**.**",
@@ -89,6 +90,7 @@ class RecipeRefinerPrompt:
 ```json
 {
   "title": "[요리 이름]",
+  "author": "[작성자]",
   "ingredients": [
     {
       "index": 1,
@@ -103,7 +105,7 @@ class RecipeRefinerPrompt:
       "unit": "[단위, 없으면 비워둠]"
     }
   ],
-  "steps": [
+  "stages": [
     {
       "step": 1,
       "start_time": "**.**",
@@ -132,61 +134,63 @@ class RecipeRefinerPrompt:
 """
 
     @staticmethod
-    def get_text_recipe_prompt() -> str:
+    def get_text_recipe_prompt(language: str = "ko") -> str:
         """
         텍스트 데이터로부터 레시피를 정제하기 위한 프롬프트를 반환합니다.
         
         Returns:
             str: 텍스트 레시피 정제 프롬프트
         """
-        return """
+        return f"""
 당신은 요리 전문가입니다. 제공된 transcript 텍스트를 분석하여 구조화된 레시피로 정제해주세요.
 
 다음 JSON 형식으로 레시피를 작성해주세요:
 
 ```json
-{
+{{
   "title": "[요리 이름]",
+  "author": "[작성자]",
   "ingredients": [
-    {
+    {{
       "index": 1,
       "name": "[재료명]",
       "amount": "[분량]",
       "unit": "[단위, 없으면 비워둠]"
-    },
-    {
+    }},
+    {{
       "index": 2,
       "name": "[재료명]",
       "amount": "[분량]",
       "unit": "[단위, 없으면 비워둠]"
-    }
+    }}
   ],
-  "steps": [
-    {
+  "stages": [
+    {{
       "step": 1,
       "start_time": "**.**",
       "end_time": "**.**",
       "description": "[조리 과정 설명]"
-    },
-    {
+    }},
+    {{
       "step": 2,
       "start_time": "**.**",
       "end_time": "**.**",
       "description": "[조리 과정 설명]"
-    }
+    }}
   ],
   "estimated_time": "[시간]",
   "difficulty": "[초급/중급/고급]",
   "servings": "[제공인분]"
-}
+}}
 ```
 
 제공된 텍스트가 불완전하거나 부정확한 정보를 포함할 수 있습니다.
 전문 지식을 바탕으로 누락된 정보를 보완하고, 정확하고 실용적인 레시피로 정제해주세요.
 조리 시간은 초 단위로 표시해주세요.
-언급된 재료는 재료 목록에 포함시키며 조리 과정에서는 재료와 분량을 {재료 순번}으로만 표시해주세요.
-조리 과정에서 표시된 재료 순번은 재료 목록에 있는 재료 순번과 동일해야 하며 {1}, {2}, {3} 형식으로 표시해주세요.
+언급된 재료는 재료 목록에 포함시키며 조리 과정에서는 재료와 분량을 {{재료 순번}}으로만 표시해주세요.
+조리 과정에서 표시된 재료 순번은 재료 목록에 있는 재료 순번과 동일해야 하며 {{1}}, {{2}}, {{3}} 형식으로 표시해주세요.
 단위는 단위 표시 외에는 작성하지 마세요. 단위가 없는 경우 비워두세요.
+[문자열]은 주어진 컨텐츠의 언어에 관계없이 언어 코드:{language}에 해당하는 언어로 작성해주세요.
 """
 
     @staticmethod
@@ -201,18 +205,8 @@ class RecipeRefinerPrompt:
             str: 컨텍스트 정보가 포함된 프롬프트
         """
         context = ""
-        
-        if metadata.get('title'):
-            context += f"제목: {metadata['title']}\n"
-        
-        if metadata.get('description'):
-            context += f"설명: {metadata['description']}\n"
-            
-        if metadata.get('author'):
-            context += f"작성자: {metadata['author']}\n"
-            
-        if metadata.get('tags'):
-            context += f"태그: {', '.join(metadata['tags'])}\n"
+        if metadata:
+            context += f"- 메타데이터:\n{metadata}\n"
             
         if context:
             return f"**컨텍스트 정보:**\n{context}\n"
@@ -229,6 +223,7 @@ class RecipeRefinerPrompt:
 ```json
 {
   "title": "비프 웰링턴 (Beef Wellington)",
+  "author": "John Doe",
   "ingredients": [
     {
       "index": 1,
@@ -321,7 +316,7 @@ class RecipeRefinerPrompt:
       "unit": "큰술"
     }
   ],
-  "steps": [
+  "stages": [
     {
       "step": 1,
       "start_time": "18.559",
