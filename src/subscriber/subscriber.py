@@ -24,6 +24,7 @@ processor_agent = Agent()
 def process_message(message):
     # 메시지 처리 로직
     try:
+        print(message)
         # print(f"📩 Received message: {message['Body']}")
         json_data = json.loads(message['Body'])
 
@@ -53,11 +54,12 @@ def process_message(message):
         payload = processor_agent.process(payload, int(recipe_base_content_id), language)
 
         payload_saver(payload, recipe_base_content_id)
-        
+        print("Payload:", payload.buffer.decode('utf-8'))
 
         alert_fcm_token(recipe_base_content_id)
     except Exception as e:
         print(f"❌ Error while processing message: {e}")
+        print(str(e))
 
 def payload_saver(payload: Payload, recipe_base_content_id: int):
     recipe_base_service = RecipeBaseService()
@@ -65,7 +67,7 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
 
     data = json.loads(payload.buffer)
 
-    print(data)
+    # print(data)
     with processor_agent.db_manager.session_scope() as session:
         ingredients = []
         for ingredient in data['ingredients']:
@@ -110,7 +112,17 @@ def alert_fcm_token(recipe_base_content_id: int):
     image_url = "https://recipe-it.com/recipe/1234567890"
     
     with processor_agent.db_manager.session_scope() as session:
-        recipes = recipe_service.get_recipes_by_base(session, recipe_base_content_id, limit=1e9)
+        recipes = []
+        offset = 0
+        limit = 100
+        
+        while True:
+            batch = recipe_service.get_recipes_by_base(session, recipe_base_content_id, limit=limit, offset=offset)
+            if not batch:
+                break
+            recipes.extend(batch)
+            offset += limit
+        
         user_ids = [recipe.user_id for recipe in recipes]
         user_alerts = user_service.get_user_alerts_by_user_ids(session, user_ids)
 
@@ -130,41 +142,59 @@ def alert_fcm_token(recipe_base_content_id: int):
 def poll_messages():
     print("👂 SQS Subscriber is running...")
     cnt = 0
-    while cnt < 10:
+    tolerance = int(os.getenv("AWS_SQS_POLL_COUNT", 3))
+    if tolerance == 0:
+        tolerance = 1e9
+    while cnt < tolerance:
         # print(queue_url)
         try:
             # 메시지 수신 (최대 10개, 최대 20초 대기)
             response = sqs.receive_message(
                 QueueUrl=queue_url,
                 AttributeNames=['All'],
-                MaxNumberOfMessages=10,
-                WaitTimeSeconds=20,  # long polling
-                VisibilityTimeout=60  # 메시지 처리 시간
+                MaxNumberOfMessages=int(os.getenv("AWS_SQS_MAX_NUMBER_OF_MESSAGES", 10)),
+                WaitTimeSeconds=int(os.getenv("AWS_SQS_WAIT_TIME_SECONDS", 20)),  # long polling
+                VisibilityTimeout=int(os.getenv("AWS_SQS_VISIBILITY_TIMEOUT", 30))  # 메시지 처리 시간
             )
-            cnt += 1
-            if not response:
-                cnt = 0
-                continue
+        except Exception as e:
+            print(f"❌ Error while polling: {e}")
+            time.sleep(1)  # 재시도 전 대기
+            continue
+        
+        cnt += 1
+        if not response:
+            continue
 
-            messages = response.get('Messages', [])
-            print(messages)
-            if not messages:
-                cnt = 0
-                continue
-            
-            print("processing messages")
-            for message in messages:
-                process_message(message)
+        messages = response.get('Messages', [])
+        # print(messages)
+        if not messages:
+            continue
+        cnt = 0
 
-                # 수신 확인 및 삭제
+        target_messages = []
+        for message in messages:
+            try:
                 sqs.delete_message(
                     QueueUrl=queue_url,
                     ReceiptHandle=message['ReceiptHandle']
                 )
+                target_messages.append(message)
+            except Exception as e:
+                print(f"❌ Error while deleting message: {e}")
+                continue
 
-        except Exception as e:
-            print(f"❌ Error while polling: {e}")
-            time.sleep(5)  # 재시도 전 대기
+        # print("processing messages")
+        for message in target_messages:
+            try:
+                process_message(message)
+            except Exception as e:
+                print(f"❌ Error while processing message: {e}")
+                sqs.send_message(
+                    QueueUrl=queue_url,
+                    MessageBody=message['Body'],
+                    DelaySeconds=0
+                )
+                continue
 
 if __name__ == "__main__":
     poll_messages()
