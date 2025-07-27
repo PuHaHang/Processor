@@ -24,7 +24,7 @@ def process_message(message):
         # print(f"📩 Received message: {message['Body']}")
         json_data = json.loads(message['Body'])
 
-        recipe_base_content_id = json_data['recipe_base_content_id']
+        recipe_base_content_id = json_data['recipeBaseContentId']
         platform = json_data['platform']
         source = json_data['source']
         language = json_data['language']
@@ -50,6 +50,9 @@ def process_message(message):
         payload = processor_agent.process(payload, int(recipe_base_content_id), language)
 
         payload_saver(payload, recipe_base_content_id)
+        
+
+        alert_fcm_token(recipe_base_content_id)
     except Exception as e:
         print(f"❌ Error while processing message: {e}")
 
@@ -94,6 +97,32 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
 
         recipe_base_service.update_recipe_base_content(session, recipe_base_content)
         recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.COMPLETED)
+
+def alert_fcm_token(recipe_base_content_id: int):
+    user_service = UserService()
+    recipe_service = RecipeService()
+
+    title = "새로운 레시피가 추가되었습니다."
+    body = "새로운 레시피가 추가되었습니다."
+    image_url = "https://recipe-it.com/recipe/1234567890"
+    
+    with processor_agent.db_manager.session_scope() as session:
+        recipes = recipe_service.get_recipes_by_base(session, recipe_base_content_id, limit=1e9)
+        user_ids = [recipe.user_id for recipe in recipes]
+        user_alerts = user_service.get_user_alerts_by_user_ids(session, user_ids)
+
+        target_fcm_tokens = [user_alert.fcm_token for user_alert in user_alerts if user_alert.is_alerted]
+
+        if not target_fcm_tokens:
+            return
+    
+    for target_fcm_token in target_fcm_tokens:
+        send_notification(
+            target_fcm_token,
+            title,
+            body,
+            image_url
+        )
 
 def poll_messages():
     print("👂 SQS Subscriber is running...")
