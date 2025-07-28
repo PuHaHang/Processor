@@ -132,7 +132,7 @@ jobs:
       - name: Fetch current task definition
         run: |
           aws ecs describe-task-definition \
-            --task-definition ${{ secrets.DOCKER_IMAGE_NAME }} \
+            --task-definition ${{ secrets.AWS_TASK_NAME }} \
             --query 'taskDefinition' > task-def.json
 
       - name: Update ECS task definition with new image
