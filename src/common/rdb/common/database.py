@@ -28,8 +28,12 @@ naming_convention = {
     "pk": "pk_%(table_name)s"
 }
 
-
+cached_secret = None
 def get_secret():
+    global cached_secret
+    if cached_secret is not None:
+        return cached_secret
+
     import json
     import boto3
     from botocore.exceptions import ClientError
@@ -52,8 +56,8 @@ def get_secret():
 
     secret = get_secret_value_response['SecretString']
     secret_dict = json.loads(secret)
+    cached_secret = secret_dict
     return secret_dict
-
 
 class DatabaseManager:
     """SQLModel 기반 데이터베이스 연결과 세션 관리를 담당하는 클래스"""
