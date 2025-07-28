@@ -42,7 +42,7 @@ def process_message(message):
                 status=PayloadStatus.INIT,
                 processor=None,
             )
-        elif platform == "UNKNOWN":
+        elif platform == "TEXT":
             payload = Payload(
                 buffer=source.encode('utf-8'),
                 metadata={},
