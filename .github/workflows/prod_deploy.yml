@@ -90,3 +90,55 @@ jobs:
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
           docker tag ${{ secrets.DOCKER_IMAGE_NAME }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.DOCKER_IMAGE_NAME }}:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+  
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push Docker image to ECR
+        run: |
+          DIGEST=$(aws ecr describe-images \
+            --repository-name ${{ secrets.DOCKER_IMAGE_NAME }} \
+            --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageDigest' \
+            --output text)
+
+          IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ secrets.DOCKER_IMAGE_NAME }}:$DIGEST"
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "Pushed image digest: $IMAGE_URI"
+
+      - name: Fetch current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ secrets.DOCKER_IMAGE_NAME }} \
+            --query 'taskDefinition' > task-def.json
+
+      - name: Update ECS task definition with new image
+        id: update-task-def
+        run: |
+          IMAGE_URI="${{ env.IMAGE_URI }}"
+
+          jq --arg IMAGE "$IMAGE_URI" \
+            '.containerDefinitions[0].image = $IMAGE |
+             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            task-def.json > new-task-def.json
+
+          echo "Registering new task definition revision..."
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://new-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          echo "New Task Definition ARN: $NEW_TASK_DEF_ARN"
+
