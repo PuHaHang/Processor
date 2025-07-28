@@ -69,7 +69,7 @@ class CreateRecipeDto(BaseModel):
     @field_validator('recipe_base_content_id')
     def validate_recipe_base_content_id(cls, v):
         """레시피 베이스 ID 유효성 검사"""
-        if v <= 0:
+        if v < 0:
             raise ValueError('레시피 베이스 ID는 0보다 커야 합니다')
         return v
 

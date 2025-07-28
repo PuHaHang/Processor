@@ -50,8 +50,8 @@ class UpdateRecipeBaseDto(BaseModel):
     @field_validator('recipe_base_id')
     def validate_recipe_base_id(cls, v):
         """레시피 베이스 ID 검증"""
-        if v <= 0:
-            raise ValueError("레시피 베이스 ID는 1 이상이어야 합니다.")
+        if v < 0:
+            raise ValueError("레시피 베이스 ID는 0 이상이어야 합니다.")
         
         return v
 
