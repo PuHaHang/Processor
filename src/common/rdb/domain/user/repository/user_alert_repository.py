@@ -43,7 +43,7 @@ class UserAlertRepository:
             logger.error(f"Error creating user alert: {e}")
             raise
 
-    def find_by_user_id(self, session: Session, user_id: str) -> Optional[UserAlert]:
+    def find_by_user_ids(self, session: Session, user_ids: List[str]) -> List[UserAlert]:
         """
         사용자 ID로 알림 정보를 조회합니다.
 
@@ -58,17 +58,17 @@ class UserAlertRepository:
             SQLAlchemyError: 데이터베이스 오류 발생 시
         """
         try:
-            statement = select(UserAlert).where(UserAlert.user_id == user_id)
-            result = session.exec(statement).first()
+            statement = select(UserAlert).where(UserAlert.user_id.in_(user_ids))
+            result = session.exec(statement).all()
             
             if result:
-                logger.debug(f"UserAlert found for user: {user_id}")
+                logger.debug(f"UserAlert found for users: {user_ids}")
             else:
-                logger.debug(f"UserAlert not found for user: {user_id}")
+                logger.debug(f"UserAlert not found for users: {user_ids}")
                 
             return result
         except SQLAlchemyError as e:
-            logger.error(f"Error finding user alert by user ID: {e}")
+            logger.error(f"Error finding user alert by user IDs: {e}")
             raise
 
     def find_by_fcm_token(self, session: Session, fcm_token: str) -> Optional[UserAlert]:
