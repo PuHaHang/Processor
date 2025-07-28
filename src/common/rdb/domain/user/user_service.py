@@ -273,7 +273,7 @@ class UserService:
             
             # 알림 정보 업데이트
             alert = self.user_alert_repository.find_by_user_ids(session, [user.user_id])
-            if alert:
+            if alert and len(alert) > 0:
                 if dto.fcm_token is not None:
                     alert[0].fcm_token = dto.fcm_token
                 if dto.is_alerted is not None:
@@ -494,7 +494,7 @@ class UserService:
             # 알림 정보 조회 또는 생성
             alert = self.user_alert_repository.find_by_user_ids(session, [user_id])
             
-            if alert:
+            if alert and len(alert) > 0:
                 # 기존 알림 정보 업데이트
                 alert[0].fcm_token = fcm_token
                 self.user_alert_repository.update(session, alert[0])
@@ -540,7 +540,7 @@ class UserService:
             # 알림 정보 조회 또는 생성
             alert = self.user_alert_repository.find_by_user_ids(session, [user_id])
             
-            if alert:
+            if alert and len(alert) > 0:
                 # 기존 알림 정보 업데이트
                 alert[0].is_alerted = is_alerted
                 self.user_alert_repository.update(session, alert[0])
