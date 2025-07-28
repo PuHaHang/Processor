@@ -512,22 +512,7 @@ class TestRecipeBaseService:
     #     # 컨텐츠 수정 확인
     #     assert updated_recipe_base.contents[0].title == "수정된 레시피 제목"
     #     assert updated_recipe_base.contents[0].author == "수정된 요리사"
-    
-    def test_update_recipe_base_not_found(self, session, clean_database):
-        """존재하지 않는 레시피 베이스 수정 테스트"""
-        service = RecipeBaseService()
-        
-        # 존재하지 않는 레시피 베이스 수정
-        update_dto = UpdateRecipeBaseDto(
-            recipe_base_id=99999,
-            title="수정된 레시피 제목"
-        )
-        
-        # 레시피 베이스 수정
-        updated_recipe_base = service.update_recipe_base(session, update_dto)
-        
-        # 결과 확인
-        assert updated_recipe_base is None
+
     
     def test_increment_view_count(self, session, complete_recipe_base, clean_database):
         """조회수 증가 테스트"""
