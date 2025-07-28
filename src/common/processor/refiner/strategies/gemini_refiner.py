@@ -443,7 +443,7 @@ class GeminiRefiner(RefinerStrategy):
         parsed_json = json.loads(json_content)
         
         # 필수 필드 검증
-        required_fields = ['title', 'ingredients', 'steps', 'estimated_time', 'difficulty', 'servings']
+        required_fields = ['title', 'ingredients', 'stages', 'estimated_time', 'difficulty', 'servings']
         for field in required_fields:
             if field not in parsed_json:
                 self._logger.warning(f"필수 필드 누락: {field}")
@@ -473,6 +473,7 @@ class GeminiRefiner(RefinerStrategy):
         # 기본 JSON 구조 생성
         recipe_json = {
             "title": "추출된 레시피",
+            "author": "정보 없음",
             "ingredients": [
                 {
                     "index": 1,
@@ -480,7 +481,7 @@ class GeminiRefiner(RefinerStrategy):
                     "amount": "적당량"
                 }
             ],
-            "steps": [
+            "stages": [
                 {
                     "step": 1,
                     "start_time": "00:00:00",
@@ -507,6 +508,7 @@ class GeminiRefiner(RefinerStrategy):
         """
         error_json = {
             "title": "레시피 정제 실패",
+            "author": "정보 없음",
             "ingredients": [
                 {
                     "index": 1,
@@ -514,7 +516,7 @@ class GeminiRefiner(RefinerStrategy):
                     "amount": "정보 없음"
                 }
             ],
-            "steps": [
+            "stages": [
                 {
                     "step": 1,
                     "start_time": "00:00:00",
@@ -541,8 +543,9 @@ class GeminiRefiner(RefinerStrategy):
         """
         defaults = {
             "title": "정보 없음",
+            "author": "정보 없음",
             "ingredients": [{"index": 1, "name": "정보 부족", "amount": "적당량"}],
-            "steps": [{"step": 1, "start_time": "00:00:00", "end_time": "00:00:00", "description": "정보 부족"}],
+            "stages": [{"step": 1, "start_time": "00:00:00", "end_time": "00:00:00", "description": "정보 부족"}],
             "estimated_time": "정보 없음",
             "difficulty": "정보 없음",
             "servings": "정보 없음"

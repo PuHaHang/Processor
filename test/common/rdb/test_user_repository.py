@@ -706,13 +706,13 @@ class TestUserAlertRepository:
         repository = UserAlertRepository()
         
         # 알림 정보 조회
-        found_alert = repository.find_by_user_id(session, sample_user_alert.user_id)
+        found_alert = repository.find_by_user_ids(session, [sample_user_alert.user_id])
         
         # 결과 확인
         assert found_alert is not None
-        assert found_alert.user_id == sample_user_alert.user_id
-        assert found_alert.fcm_token == sample_user_alert.fcm_token
-        assert found_alert.is_alerted == sample_user_alert.is_alerted
+        assert found_alert[0].user_id == sample_user_alert.user_id
+        assert found_alert[0].fcm_token == sample_user_alert.fcm_token
+        assert found_alert[0].is_alerted == sample_user_alert.is_alerted
     
     def test_find_by_fcm_token(self, session, sample_user_alert, clean_database):
         """FCM 토큰으로 알림 정보 조회 테스트"""
@@ -827,8 +827,8 @@ class TestUserAlertRepository:
         assert result is True
         
         # 삭제 확인
-        found_alert = repository.find_by_user_id(session, sample_user_alert.user_id)
-        assert found_alert is None
+        found_alert = repository.find_by_user_ids(session, [sample_user_alert.user_id])
+        assert len(found_alert) == 0
     
     def test_find_all(self, session, clean_database):
         """모든 알림 정보 조회 테스트"""

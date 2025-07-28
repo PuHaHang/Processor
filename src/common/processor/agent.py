@@ -5,13 +5,19 @@
 URL에서 오디오를 다운로드하고, 필요시 형식을 변환한 후, STT를 통해 텍스트로 변환하는 전체 워크플로우를 관리합니다.
 """
 
+from src.common.processor.evaluator.strategies.yt_dlp_evaluator import YtDlpEvaluator
+from src.common.rdb.common.database import DatabaseManager
+from src.common.rdb.domain.recipe.models import RecipeState
+from src.common.rdb.domain.recipe.recipe_base_service import RecipeBaseService
 from .evaluator import Evaluator
 from .converter import Converter
 from .types import DataType, Payload, PayloadStatus
 from .downloader import Downloader
+from .formatter import Formatter
 from .processor import Processor
 from .processor_type import ProcessorType
 from .transcriber import Transcriber
+from .refiner import Refiner
 
 # 예외 핸들러 import
 from ..exception import (
@@ -49,6 +55,11 @@ class Agent:
     # 프로세서 처리 실패 시 최대 재시도 횟수
     max_retry: int = 3
 
+    db_manager = DatabaseManager()
+    db_manager.initialize()
+
+    recipe_base_service = RecipeBaseService()
+
     @ExceptionHandler(
         exception_type=ExceptionType.PIPELINE_ERROR,
         severity=ExceptionSeverity.HIGH,
@@ -60,7 +71,7 @@ class Agent:
         reraise=True,
         collect_errors=True
     )
-    def process(self, payload: Payload, opt: dict = {}) -> Payload:
+    def process(self, payload: Payload, recipe_base_content_id: int, language: str) -> Payload:
         """
         버퍼 데이터를 처리 파이프라인을 통해 처리합니다.
         
@@ -103,11 +114,11 @@ class Agent:
             )
         
         # 파이프라인 구성
-        pipeline = self._construct_pipeline(payload, opt)
+        pipeline = self._construct_pipeline(payload)
         metadatas = []  # 각 단계의 메타데이터 수집
 
         evaluator = Evaluator()
-
+        print("start processing")
         # 각 프로세서를 순차적으로 실행
         for processor in pipeline:
             # 버퍼 데이터 유효성 검사
@@ -116,14 +127,22 @@ class Agent:
                     message="파이프라인 중간에 페이로드가 None이 되었습니다",
                     processor_name=processor.get_processor_type().name
                 )
-                
+            
             # 최대 재시도 횟수만큼 시도
             for retry_count in range(self.max_retry):
                 # 현재 프로세서가 버퍼 데이터를 지원하는지 확인
                 if processor.is_supported(payload):
                     # 프로세서 실행을 내부 메소드로 분리
+                    with self.db_manager.session_scope() as session:
+                        if any(downloader in processor.__class__.__bases__ for downloader in [Formatter, Downloader, YtDlpEvaluator]):
+                            self.recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.VERIFYING)
+                        elif any(p in processor.__class__.__bases__ for p in [Evaluator]):
+                            self.recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.EVALUATING)
+                        else:
+                            self.recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.TRANSFORMING)
+
                     success, result_payload = self._execute_processor_with_retry(processor, payload, evaluator, retry_count)
-                    
+
                     if success:
                         payload = result_payload
                         # 처리 결과의 메타데이터 저장
@@ -132,6 +151,8 @@ class Agent:
                         break
                     elif retry_count == self.max_retry - 1:
                         # 최종 실패 시 예외 발생
+                        with self.db_manager.session_scope() as session:
+                            self.recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.FAILED)
                         raise ProcessingException(
                             message=f"프로세서 {processor.get_processor_type().name} 최종 실패",
                             processor_name=processor.get_processor_type().name
@@ -142,6 +163,8 @@ class Agent:
                         continue
                 else:
                     # 프로세서가 현재 데이터 타입을 지원하지 않는 경우
+                    with self.db_manager.session_scope() as session:
+                        self.recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.FAILED)
                     raise ValidationException(
                         message=f"프로세서 {processor.get_processor_type().name}가 {payload.data_type.name} 타입을 지원하지 않습니다",
                         field_name="data_type",
@@ -155,9 +178,23 @@ class Agent:
                     message=f"프로세서 {processor.get_processor_type().name}가 데이터 처리를 완료하지 못했습니다",
                     processor_name=processor.get_processor_type().name
                 )
+            
+            with self.db_manager.session_scope() as session:
+                if any(downloader in processor.__class__.__bases__ for downloader in [Formatter, Downloader, YtDlpEvaluator]):
+                    self.recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.VERIFIED)
+                elif any(p in processor.__class__.__bases__ for p in [Evaluator]):
+                    pass
+                else:
+                    self.recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.TRANSFORMED)
         
         # 전체 파이프라인의 메타데이터 출력 (디버깅용)
-        print("Pipeline metadata:", metadatas)
+        # print("Pipeline metadata:", metadatas)
+
+        payload.metadata = {}
+        for md in metadatas:
+            for key, value in md.items():
+                payload.metadata[key] = value
+
         return payload
 
     @ExceptionHandler(
@@ -237,12 +274,17 @@ class Agent:
         # - 사용자 선호도 반영 (속도 vs 품질)
         # - 동적 프로세서 선택 (API 가용성, 비용 등)
         
-        return [
-            Downloader(),     # 오디오 다운로드
-            # Converter(),    # 오디오 형식 변환 (현재 비활성화)
-            # Transcriber(),   # 오디오 → 텍스트 전사
-        ]
-
+        if payload.data_type == DataType.URL:
+            return [
+                Downloader(),     # 오디오 다운로드
+                # Converter(),    # 오디오 형식 변환 (현재 비활성화)
+                # Transcriber(),   # 오디오 → 텍스트 전사
+                Refiner(),       # 텍스트 → 정제
+            ]
+        elif payload.data_type == DataType.TEXT:
+            return [
+                Refiner(),       # 텍스트 → 정제
+            ]
 
     def get_available_processors(self) -> dict[ProcessorType, Processor]:
         """
