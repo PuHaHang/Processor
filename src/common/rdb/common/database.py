@@ -29,6 +29,32 @@ naming_convention = {
 }
 
 
+def get_secret():
+    import json
+    import boto3
+    from botocore.exceptions import ClientError
+
+    secret_name = os.getenv("AWS_RDS_SECRETS_MANAGER", "")
+    region_name = os.getenv("AWS_REGION", "ap-northeast-2")
+
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        raise e
+
+    secret = get_secret_value_response['SecretString']
+    secret_dict = json.loads(secret)
+    return secret_dict
+
+
 class DatabaseManager:
     """SQLModel 기반 데이터베이스 연결과 세션 관리를 담당하는 클래스"""
 
@@ -97,8 +123,14 @@ class DatabaseManager:
         host = os.getenv("POSTGRES_HOST", "localhost")
         port = os.getenv("POSTGRES_PORT", "5432")
         database = os.getenv("POSTGRES_DB", "postgres")
-        username = os.getenv("POSTGRES_USER", "postgres")
+        username = os.getenv("POSTGRES_USER", "")
         password = os.getenv("POSTGRES_PW", "")
+
+        if not username or not password:
+            secret = get_secret()
+            username = secret['username']
+            password = secret['password']
+
         return f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}"
 
     def _setup_event_listeners(self) -> None:
