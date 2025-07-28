@@ -4,12 +4,15 @@ import os
 import boto3
 import time
 
+from src.common.image_generation.gemini_generator import GeminiGenerator
 from src.common.fcm.fcm_manager import send_notification
-from src.common.rdb.domain.recipe.models import Ingredient, RecipeState
+from src.common.rdb.domain.recipe.dto.update_recipe_base_dto import UpdateRecipeBaseDto
+from src.common.rdb.domain.recipe.models import Ingredient, Recipe, RecipeDifficulty, RecipeState
 from src.common.rdb.domain.recipe.recipe_base_service import RecipeBaseService
 from src.common.rdb.domain.recipe.recipe_service import RecipeService
 from src.common.rdb.domain.recipe.repository.ingredient_repository import IngredientRepository
 from src.common.rdb.domain.user.user_service import UserService
+from src.common.s3 import s3_connector
 
 from ..common.processor.agent import Agent
 from ..common.processor.types.payload import Payload
@@ -55,8 +58,6 @@ def process_message(message):
 
         payload_saver(payload, recipe_base_content_id)
         print("Payload:", payload.buffer.decode('utf-8'))
-
-        alert_fcm_token(recipe_base_content_id)
     except Exception as e:
         print(f"❌ Error while processing message: {e}")
         print(str(e))
@@ -67,6 +68,28 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
 
     data = json.loads(payload.buffer)
 
+    image_generator = GeminiGenerator()
+    image_prompt = data['image_prompt']
+    image = image_generator.generate_image(image_prompt)
+    
+    image_url = None
+    try:
+        image_url = s3_connector.upload_image_to_s3(image, f"recipe_images/originals/{recipe_base_content_id}.png", os.getenv("AWS_S3_BUCKET_NAME"))
+    except Exception as e:
+        print(f"❌ Error while uploading image to S3: {e}")
+        return
+    
+    difficulty = RecipeDifficulty(data['difficulty'])
+    try:
+        estimated_time = int(data['estimated_time'])
+    except Exception as e:
+        estimated_time = None
+    
+    try:
+        servings = int(data['servings'])
+    except Exception as e:
+        servings = None
+    
     # print(data)
     with processor_agent.db_manager.session_scope() as session:
         ingredients = []
@@ -103,13 +126,22 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
         recipe_base_service.update_recipe_base_content(session, recipe_base_content)
         recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.COMPLETED)
 
-def alert_fcm_token(recipe_base_content_id: int):
+        recipe_base = recipe_base_service.get_recipe_base_by_id(session, recipe_base_content.recipe_base_id)
+        recipe_base_service.update_recipe_base(session, UpdateRecipeBaseDto(
+            recipe_base_id=recipe_base.recipe_base_id,
+            difficulty=difficulty,
+            estimated_time=estimated_time,
+            servings=servings,
+            thumbnail=image_url
+        ))
+    
+    alert_fcm_token(recipe_base_content_id, data['title'], image_url)
+
+def alert_fcm_token(recipe_base_content_id: int, body: str, image_url: str = ""):
     user_service = UserService()
     recipe_service = RecipeService()
 
     title = "새로운 레시피가 추가되었습니다."
-    body = "새로운 레시피가 추가되었습니다."
-    image_url = "https://recipe-it.com/recipe/1234567890"
     
     with processor_agent.db_manager.session_scope() as session:
         recipes = []
@@ -132,12 +164,16 @@ def alert_fcm_token(recipe_base_content_id: int):
             return
     
     for target_fcm_token in target_fcm_tokens:
-        send_notification(
-            target_fcm_token,
-            title,
-            body,
-            image_url
-        )
+        try:
+            send_notification(
+                target_fcm_token,
+                title,
+                body,
+                image_url
+            )
+        except Exception as e:
+            print(f"❌ Error while sending notification: {e}")
+            continue
 
 def poll_messages():
     print("👂 SQS Subscriber is running...")
