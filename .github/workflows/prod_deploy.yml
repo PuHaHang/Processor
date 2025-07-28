@@ -74,7 +74,8 @@ jobs:
 
       - name: Set FCM Service Account Key
         run: |
-          echo ${{ secrets.FCM_SERVICE_ACCOUNT_KEY }} | base64 -d > src/resources/keys/recipe-it-fcm-admin.json
+          mkdir -p src/resources/keys
+          printf "%s" "${{ secrets.FCM_SERVICE_ACCOUNT_KEY }}" | base64 -d > src/resources/keys/recipe-it-fcm-admin.json
 
       - name: Install dependencies
         run: |
