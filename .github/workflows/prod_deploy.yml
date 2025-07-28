@@ -33,7 +33,7 @@ jobs:
       AWS_SQS_MAX_NUMBER_OF_MESSAGES: ${{ vars.AWS_SQS_MAX_NUMBER_OF_MESSAGES }}
       AWS_SQS_WAIT_TIME_SECONDS: ${{ vars.AWS_SQS_WAIT_TIME_SECONDS }}
       AWS_SQS_VISIBILITY_TIMEOUT: ${{ vars.AWS_SQS_VISIBILITY_TIMEOUT }}
-      AWS_SQS_QUEUE_URL: ${{ vars.AWS_SQS_QUEUE_URL }}
+      AWS_SQS_QUEUE_URL: ${{ secrets.AWS_SQS_QUEUE_URL }}
 
       MODEL_PATH: ${{ vars.MODEL_PATH }}
       ZEROSHOT_MODEL_NAME: ${{ vars.ZEROSHOT_MODEL_NAME }}
@@ -74,7 +74,7 @@ jobs:
 
       - name: Set FCM Service Account Key
         run: |
-          echo ${{ secrets.FCM_SERVICE_ACCOUNT_KEY }} > src/resources/keys/recipe-it-fcm-admin.json
+          echo ${{ secrets.FCM_SERVICE_ACCOUNT_KEY }} | base64 -d > src/resources/keys/recipe-it-fcm-admin.json
 
       - name: Install dependencies
         run: |
@@ -95,10 +95,14 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: build
+
+    environment:
+      name: prod_recipe_it_processor
+    
     steps:
       
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -106,9 +110,10 @@ jobs:
 
       - name: Log in to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push Docker image to ECR
+      - name: Get image digest
+        id: push-digest
         run: |
           DIGEST=$(aws ecr describe-images \
             --repository-name ${{ secrets.DOCKER_IMAGE_NAME }} \
@@ -116,7 +121,7 @@ jobs:
             --output text)
 
           IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ secrets.DOCKER_IMAGE_NAME }}:$DIGEST"
-          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "::set-output name=image_uri::$IMAGE_URI"
           echo "Pushed image digest: $IMAGE_URI"
 
       - name: Fetch current task definition
@@ -128,7 +133,7 @@ jobs:
       - name: Update ECS task definition with new image
         id: update-task-def
         run: |
-          IMAGE_URI="${{ env.IMAGE_URI }}"
+          IMAGE_URI="${{ steps.push-digest.outputs.image_uri }}"
 
           jq --arg IMAGE "$IMAGE_URI" \
             '.containerDefinitions[0].image = $IMAGE |
