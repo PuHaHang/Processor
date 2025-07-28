@@ -86,11 +86,15 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKER_IMAGE_NAME }} .
 
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
       - name: Push Docker image to ECR
         run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-          docker tag ${{ secrets.DOCKER_IMAGE_NAME }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.DOCKER_IMAGE_NAME }}:latest
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          docker tag ${{ secrets.DOCKER_IMAGE_NAME }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
   
   deploy:
     name: Deploy
@@ -111,7 +115,7 @@ jobs:
 
       - name: Log in to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Get image digest
         id: push-digest
