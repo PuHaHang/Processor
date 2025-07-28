@@ -236,6 +236,17 @@ class Ingredient(SQLModel, table=True):
         description="재료명"
     )
 
+    created_at: datetime = Field(
+        default_factory=datetime.now,
+        description="생성 시간"
+    )
+    
+    updated_at: datetime = Field(
+        default_factory=datetime.now,
+        sa_column_kwargs={"onupdate": datetime.now},
+        description="수정 시간"
+    )
+
     def __repr__(self) -> str:
         return f"<Ingredient(ingredient_id={self.ingredient_id}, ingredient={self.ingredient})>"
 
