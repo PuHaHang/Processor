@@ -282,7 +282,7 @@ class RecipeBaseService:
         """
         try:
             recipe_base = session.exec(
-                select(RecipeBase, RecipeBaseContent, RecipeBaseState)
+                select(RecipeBase)
                 .where(RecipeBase.recipe_base_id == dto.recipe_base_id)
             ).first()
             
@@ -587,7 +587,7 @@ class RecipeBaseService:
         except SQLAlchemyError as e:
             logger.error(f"Error getting recipe base content by ID: {e}")
             raise
-    
+
     def update_recipe_base_content(self, session: Session, recipe_base_content: RecipeBaseContent) -> Optional[RecipeBaseContent]:
         """
         레시피 베이스 컨텐츠를 업데이트합니다.

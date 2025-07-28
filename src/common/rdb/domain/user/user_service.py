@@ -272,14 +272,14 @@ class UserService:
                 self.user_billing_repository.update(session, billing)
             
             # 알림 정보 업데이트
-            alert = self.user_alert_repository.find_by_user_id(session, user.user_id)
-            if alert:
+            alert = self.user_alert_repository.find_by_user_ids(session, [user.user_id])
+            if alert and len(alert) > 0:
                 if dto.fcm_token is not None:
-                    alert.fcm_token = dto.fcm_token
+                    alert[0].fcm_token = dto.fcm_token
                 if dto.is_alerted is not None:
-                    alert.is_alerted = dto.is_alerted
+                    alert[0].is_alerted = dto.is_alerted
                 
-                self.user_alert_repository.update(session, alert)
+                self.user_alert_repository.update(session, alert[0])
             
             logger.info(f"User updated successfully: {user.user_id}")
             return user
@@ -492,12 +492,12 @@ class UserService:
                 return None
             
             # 알림 정보 조회 또는 생성
-            alert = self.user_alert_repository.find_by_user_id(session, user_id)
+            alert = self.user_alert_repository.find_by_user_ids(session, [user_id])
             
-            if alert:
+            if alert and len(alert) > 0:
                 # 기존 알림 정보 업데이트
-                alert.fcm_token = fcm_token
-                self.user_alert_repository.update(session, alert)
+                alert[0].fcm_token = fcm_token
+                self.user_alert_repository.update(session, alert[0])
             else:
                 # 새로운 알림 정보 생성
                 alert = UserAlert(
@@ -538,12 +538,12 @@ class UserService:
                 return None
             
             # 알림 정보 조회 또는 생성
-            alert = self.user_alert_repository.find_by_user_id(session, user_id)
+            alert = self.user_alert_repository.find_by_user_ids(session, [user_id])
             
-            if alert:
+            if alert and len(alert) > 0:
                 # 기존 알림 정보 업데이트
-                alert.is_alerted = is_alerted
-                self.user_alert_repository.update(session, alert)
+                alert[0].is_alerted = is_alerted
+                self.user_alert_repository.update(session, alert[0])
             else:
                 # 새로운 알림 정보 생성
                 alert = UserAlert(
@@ -558,4 +558,15 @@ class UserService:
             
         except SQLAlchemyError as e:
             logger.error(f"Error updating alert flag: {e}")
-            raise 
+            raise
+
+    def get_user_alerts_by_user_ids(self, session: Session, user_ids: List[str]) -> List[UserAlert]:
+        """
+        사용자의 알림 정보를 조회합니다.
+        """
+        try:
+            alerts = self.user_alert_repository.find_by_user_ids(session, user_ids)
+            return alerts
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting user alert by ID: {e}")
+            raise

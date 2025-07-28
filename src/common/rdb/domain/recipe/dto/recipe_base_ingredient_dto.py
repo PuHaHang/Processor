@@ -24,7 +24,7 @@ class AddIngredientToRecipeBaseDto(BaseModel):
     @field_validator('recipe_base_id')
     def validate_recipe_base_id(cls, v):
         """레시피 베이스 ID 유효성 검사"""
-        if v <= 0:
+        if v < 0:
             raise ValueError('레시피 베이스 ID는 0보다 커야 합니다')
         return v
 
@@ -65,7 +65,7 @@ class UpdateRecipeBaseIngredientDto(BaseModel):
     @field_validator('ingredient_id')
     def validate_ingredient_id(cls, v):
         """재료 ID 유효성 검사"""
-        if v <= 0:
+        if v < 0:
             raise ValueError('재료 ID는 0보다 커야 합니다')
         return v
 

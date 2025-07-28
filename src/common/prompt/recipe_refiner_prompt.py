@@ -60,17 +60,22 @@ class RecipeRefinerPrompt:
     }}
   ],
   "estimated_time": "[시간]",
-  "difficulty": "[초급/중급/고급]",
-  "servings": "[제공인분]"
+  "difficulty": "[VERY_EASY/EASY/NORMAL/HARD/VERY_HARD]",
+  "servings": "[제공인분]",
+  "image_prompt": "[이미지 생성 프롬프트]"
 }}
 ```
 
 비디오에서 보이는 모든 조리 과정을 단계별로 상세히 기록하고, 재료의 정확한 분량과 조리 시간을 명시해주세요.
-조리 시간은 초 단위로 표시해주세요.
+조리 시간은 분 단위로 숫자만 표시해주세요.
+제공 인분은 숫자만 표시해주세요.
 언급된 재료는 재료 목록에 포함시키며 조리 과정에서는 재료는 {{재료 순번}}으로 표시해주세요.
 조리 과정에서 표시된 재료 순번은 재료 목록에 있는 재료 순번과 동일해야 하며 {{1}}, {{2}}, {{3}} 형식으로 표시해주세요.
 분량은 ((분량)) 형식으로 표시해주세요. 분량이 없는 경우 비워두세요.
 [문자열]은 주어진 컨텐츠의 언어에 관계없이 언어 코드:{language}에 해당하는 언어로 작성해주세요.
+이미지 생성 프롬프트는 요리 과정 전체에 대한 결과물을 생성하는 프롬프트로 작성해주세요. 
+이미지를 최대한 사실적으로 묘사할 수 있도록 프롬프트를 작성해주세요.
+이미지 생성 프롬프트는 주어진 컨텐츠의 언어에 관계없이 영어로 작성해주세요.
 """
 
     @staticmethod
@@ -117,18 +122,24 @@ class RecipeRefinerPrompt:
     }}
   ],
   "estimated_time": "[시간]",
-  "difficulty": "[초급/중급/고급]",
-  "servings": "[제공인분]"
+  "difficulty": "[VERY_EASY/EASY/NORMAL/HARD/VERY_HARD]",
+  "servings": "[제공인분]",
+  "image_prompt": "[이미지 생성 프롬프트]"
 }}
 ```
 
 오디오에서 들리는 모든 설명을 바탕으로 조리 과정을 단계별로 상세히 기록하고,
 언급된 재료의 분량과 조리 시간을 정확히 파악해주세요.
-조리 시간은 초 단위로 표시해주세요.
+제목은 주어진 컨텐츠의 언어에 관계없이 언어 코드:{language}에 해당하는 언어로 16자 이내로 작성해주세요.
+조리 시간은 분 단위로 숫자만 표시해주세요.
+제공 인분은 숫자만 표시해주세요.
 언급된 재료는 재료 목록에 포함시키며 조리 과정에서는 재료는 {{재료 순번}}으로 표시해주세요.
 조리 과정에서 표시된 재료 순번은 재료 목록에 있는 재료 순번과 동일해야 하며 {{1}}, {{2}}, {{3}} 형식으로 표시해주세요.
 분량은 ((분량)) 형식으로 표시해주세요. 분량이 없는 경우 비워두세요.
 [문자열]은 주어진 컨텐츠의 언어에 관계없이 언어 코드:{language}에 해당하는 언어로 작성해주세요.
+이미지 생성 프롬프트는 요리 과정 전체에 대한 결과물을 생성하는 프롬프트로 작성해주세요. 
+이미지를 최대한 사실적으로 묘사할 수 있도록 프롬프트를 작성해주세요.
+이미지 생성 프롬프트는 주어진 컨텐츠의 언어에 관계없이 영어로 작성해주세요.
 """
 
     @staticmethod
@@ -175,18 +186,24 @@ class RecipeRefinerPrompt:
     }}
   ],
   "estimated_time": "[시간]",
-  "difficulty": "[초급/중급/고급]",
-  "servings": "[제공인분]"
+  "difficulty": "[VERY_EASY/EASY/NORMAL/HARD/VERY_HARD]",
+  "servings": "[제공인분]",
+  "image_prompt": "[이미지 생성 프롬프트]"
 }}
 ```
 
 제공된 텍스트가 불완전하거나 부정확한 정보를 포함할 수 있습니다.
 전문 지식을 바탕으로 누락된 정보를 보완하고, 정확하고 실용적인 레시피로 정제해주세요.
-조리 시간은 초 단위로 표시해주세요.
+제목은 주어진 컨텐츠의 언어에 관계없이 언어 코드:{language}에 해당하는 언어로 16자 이내로 작성해주세요.
+조리 시간은 분 단위로 숫자만 표시해주세요.
+제공 인분은 숫자만 표시해주세요.
 언급된 재료는 재료 목록에 포함시키며 조리 과정에서는 재료는 {{재료 순번}}으로 표시해주세요.
 조리 과정에서 표시된 재료 순번은 재료 목록에 있는 재료 순번과 동일해야 하며 {{1}}, {{2}}, {{3}} 형식으로 표시해주세요.
 분량은 ((분량)) 형식으로 표시해주세요. 분량이 없는 경우 비워두세요.
 [문자열]은 주어진 컨텐츠의 언어에 관계없이 언어 코드:{language}에 해당하는 언어로 작성해주세요.
+이미지 생성 프롬프트는 요리 과정 전체에 대한 결과물을 생성하는 프롬프트로 작성해주세요. 
+이미지를 최대한 사실적으로 묘사할 수 있도록 프롬프트를 작성해주세요.
+이미지 생성 프롬프트는 주어진 컨텐츠의 언어에 관계없이 영어로 작성해주세요.
 """
 
     @staticmethod
@@ -349,9 +366,11 @@ class RecipeRefinerPrompt:
       "description": "오븐에서 꺼낸 웰링턴을 최소 10분 이상 그대로 두어 휴지시킨다. (이 과정은 육즙을 보존하고 소고기를 부드럽고 촉촉하게 만든다.) 먹기 좋은 크기로 잘라 따뜻하게 제공한다."
     }
   ],
-  "estimated_time": "약 120분",
-  "difficulty": "고급",
-  "servings": "4-6인분"
+  "estimated_time": "120",
+  "difficulty": "VERY_HARD",
+  "servings": "4",
+  "image_prompt": "Show a perfectly cooked Beef Wellington sliced open on a wooden cutting board. The pastry is golden-brown, flaky, and shiny from an egg wash. Inside, the beef tenderloin is medium-rare with a pink center, surrounded by a dark mushroom duxelles layer and thin slices of prosciutto. The cross-section clearly shows the multiple layers. Garnish the cutting board with sprigs of fresh thyme, a small bowl of mustard on the side, and a knife with meat juice on it. The lighting is warm and natural, evoking a fine-dining atmosphere. Style: professional food photography, high detail, 4K.
+"
 }
 ```
 """
