@@ -10,6 +10,7 @@ import os
 import logging
 from typing import Generator, Optional
 from contextlib import contextmanager
+import logfire
 
 from sqlmodel import create_engine, Session, SQLModel, text
 from sqlalchemy import event, MetaData
@@ -87,7 +88,7 @@ class DatabaseManager:
             pool_recycle: 커넥션 재활용 시간(초)
         """
         if self._is_initialized:
-            logger.warning("Database is already initialized")
+            logfire.warn('데이터베이스가 이미 초기화됨')
             return
 
         # 데이터베이스 URL 설정
@@ -116,10 +117,10 @@ class DatabaseManager:
             self._setup_event_listeners()
 
             self._is_initialized = True
-            logger.info("SQLModel database initialized successfully")
+            logfire.info('SQLModel 데이터베이스 초기화 성공')
 
         except Exception as e:
-            logger.error(f"Failed to initialize database: {e}")
+            logfire.error('데이터베이스 초기화 실패 {error}', error=str(e))
             raise
 
     def _get_database_url(self) -> str:
@@ -159,9 +160,9 @@ class DatabaseManager:
 
         try:
             SQLModel.metadata.create_all(bind=self.engine)
-            logger.info("SQLModel tables created successfully")
+            logfire.info('SQLModel 테이블 생성 성공')
         except Exception as e:
-            logger.error(f"Failed to create tables: {e}")
+            logfire.error('테이블 생성 실패 {error}', error=str(e))
             raise
 
     def drop_tables(self) -> None:
@@ -171,9 +172,9 @@ class DatabaseManager:
 
         try:
             SQLModel.metadata.drop_all(bind=self.engine)
-            logger.info("SQLModel tables dropped successfully")
+            logfire.info('SQLModel 테이블 삭제 성공')
         except Exception as e:
-            logger.error(f"Failed to drop tables: {e}")
+            logfire.error('테이블 삭제 실패 {error}', error=str(e))
             raise
 
     def get_session(self) -> Session:
@@ -201,7 +202,7 @@ class DatabaseManager:
             session.commit()
         except Exception as e:
             session.rollback()
-            logger.error(f"Session rolled back due to: {e}")
+            logfire.error('세션 롤백 발생 {error}', error=str(e))
             raise
         finally:
             session.close()
@@ -211,7 +212,7 @@ class DatabaseManager:
         if self.engine:
             self.engine.dispose()
             self._is_initialized = False
-            logger.info("Database connection closed")
+            logfire.info('데이터베이스 연결 종료')
     def health_check(self) -> bool:
         """데이터베이스 연결 상태를 확인합니다."""
         if not self._is_initialized or self.engine is None:
@@ -222,5 +223,5 @@ class DatabaseManager:
                 session.exec(text("SELECT 1"))
                 return True
         except Exception as e:
-            logger.error(f"Database health check failed: {e}")
+            logfire.error('데이터베이스 헬스 체크 실패 {error}', error=str(e))
             return False

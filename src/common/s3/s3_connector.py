@@ -1,5 +1,6 @@
 import os
 import boto3
+import logfire
 from botocore.exceptions import BotoCoreError, ClientError
 
 
@@ -33,15 +34,16 @@ def upload_image_to_s3(image, key: str, bucket: str) -> str:
     )
 
     try:
+        logfire.info('S3 이미지 업로드 시작 {bucket}/{key}', bucket=bucket, key=key)
         s3_client.upload_fileobj(
             img_byte_arr,
             bucket,
             key,
             ExtraArgs={'ContentType': 'image/png', 'ACL': 'public-read'}
         )
+        s3_url = f"https://{bucket}.s3.{os.environ.get('AWS_REGION')}.amazonaws.com/{key}"
+        logfire.info('S3 이미지 업로드 성공 {s3_url}', s3_url=s3_url)
+        return s3_url
     except (BotoCoreError, ClientError) as e:
-        print(f"S3 업로드 실패: {e}")
+        logfire.error('S3 이미지 업로드 실패 {error}, bucket: {bucket}, key: {key}', error=str(e), bucket=bucket, key=key)
         raise
-
-    s3_url = f"https://{bucket}.s3.{os.environ.get('AWS_REGION')}.amazonaws.com/{key}"
-    return s3_url

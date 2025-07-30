@@ -29,6 +29,7 @@ processor_agent = Agent()
 def process_message(message):
     # 메시지 처리 로직
     try:
+        logfire.debug('SQS 메시지 처리 시작 {message}', message=message)
         json_data = json.loads(message['Body'])
 
         recipe_base_content_id = json_data['recipeBaseContentId']
@@ -55,6 +56,7 @@ def process_message(message):
             )
 
         payload = processor_agent.process(payload, int(recipe_base_content_id), language)
+        logfire.debug('SQS 메시지 처리 완료 {payload}', payload=payload)
 
         payload_saver(payload, recipe_base_content_id)
     except Exception as e:
@@ -88,7 +90,7 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
     except Exception as e:
         servings = None
     
-    # print(data)
+    logfire.debug('payload_saver 시작 {data}, image_url: {image_url}', data=data, image_url=image_url)
     with processor_agent.db_manager.session_scope() as session:
         ingredients = []
         for ingredient in data['ingredients']:
@@ -210,6 +212,7 @@ def poll_messages():
         target_messages = []
         for message in messages:
             try:
+                logfire.debug('SQS 메시지 삭제 시작 {message}', message=message)
                 sqs.delete_message(
                     QueueUrl=queue_url,
                     ReceiptHandle=message['ReceiptHandle']
@@ -221,6 +224,7 @@ def poll_messages():
 
         for message in target_messages:
             try:
+                logfire.debug('SQS 메시지 처리 시작 {message}', message=message)
                 process_message(message)
             except Exception as e:
                 logfire.error('SQS 메시지 처리 중 오류 발생 {error}, message: {message}', error=str(e), message=message)

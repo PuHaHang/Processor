@@ -5,6 +5,7 @@
 URL에서 오디오를 다운로드하고, 필요시 형식을 변환한 후, STT를 통해 텍스트로 변환하는 전체 워크플로우를 관리합니다.
 """
 
+import logfire
 from src.common.processor.evaluator.strategies.yt_dlp_evaluator import YtDlpEvaluator
 from src.common.rdb.common.database import DatabaseManager
 from src.common.rdb.domain.recipe.models import RecipeState
@@ -118,7 +119,7 @@ class Agent:
         metadatas = []  # 각 단계의 메타데이터 수집
 
         evaluator = Evaluator()
-        print("start processing")
+        logfire.info('Agent 처리 시작 {recipe_base_content_id}, data_type: {data_type}', recipe_base_content_id=recipe_base_content_id, data_type=payload.data_type.name)
         # 각 프로세서를 순차적으로 실행
         for processor in pipeline:
             # 버퍼 데이터 유효성 검사
@@ -147,6 +148,7 @@ class Agent:
                         payload = result_payload
                         # 처리 결과의 메타데이터 저장
                         metadatas.append(payload.metadata)
+                        logfire.debug('프로세서 처리 성공 {processor_type}', processor_type=processor.get_processor_type().name)
                         # 성공 시 재시도 루프 탈출
                         break
                     elif retry_count == self.max_retry - 1:
@@ -159,7 +161,7 @@ class Agent:
                         )
                     else:
                         # 재시도 로그
-                        print(f"Processor {processor.get_processor_type()} failed to process {payload.data_type}")
+                        logfire.warn('프로세서 처리 실패, 재시도 중 {processor_type}, retry_count: {retry_count}', processor_type=processor.get_processor_type().name, retry_count=retry_count)
                         continue
                 else:
                     # 프로세서가 현재 데이터 타입을 지원하지 않는 경우
@@ -195,6 +197,7 @@ class Agent:
             for key, value in md.items():
                 payload.metadata[key] = value
 
+        logfire.info('Agent 처리 완료 {recipe_base_content_id}', recipe_base_content_id=recipe_base_content_id)
         return payload
 
     @ExceptionHandler(
@@ -219,7 +222,7 @@ class Agent:
             tuple[bool, Payload]: (성공 여부, 처리된 페이로드 또는 None)
         """
         # 프로세서 실행 로그
-        print(f"{processor.get_processor_type()} processing")
+        logfire.debug('프로세서 실행 시작 {processor_type}', processor_type=processor.get_processor_type().name)
         
         # 실제 프로세서 실행
         processed_payload = processor.process(payload)

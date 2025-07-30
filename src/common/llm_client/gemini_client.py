@@ -1,4 +1,5 @@
 from google import genai
+import logfire
 
 from .client import LLMClient
 
@@ -12,6 +13,7 @@ class GeminiClient (genai.Client, LLMClient):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        logfire.info('Gemini 클라이언트 초기화 완료')
     
         
         
