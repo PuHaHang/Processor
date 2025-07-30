@@ -48,3 +48,5 @@ onnxruntime
 google-genai
 psycopg2-binary
 python-ulid==3.0.0
+amplitude-analytics
+logfire
