@@ -1,8 +1,10 @@
 from datetime import datetime
 import json
 import os
-import boto3
 import time
+
+import boto3
+import logfire
 
 from src.common.image_generation.gemini_generator import GeminiGenerator
 from src.common.fcm.fcm_manager import send_notification
@@ -27,8 +29,6 @@ processor_agent = Agent()
 def process_message(message):
     # 메시지 처리 로직
     try:
-        print(message)
-        # print(f"📩 Received message: {message['Body']}")
         json_data = json.loads(message['Body'])
 
         recipe_base_content_id = json_data['recipeBaseContentId']
@@ -57,10 +57,8 @@ def process_message(message):
         payload = processor_agent.process(payload, int(recipe_base_content_id), language)
 
         payload_saver(payload, recipe_base_content_id)
-        print("Payload:", payload.buffer.decode('utf-8'))
     except Exception as e:
-        print(f"❌ Error while processing message: {e}")
-        print(str(e))
+        logfire.error('SQS 메시지 처리 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
 
 def payload_saver(payload: Payload, recipe_base_content_id: int):
     recipe_base_service = RecipeBaseService()
@@ -76,7 +74,7 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
     try:
         image_url = s3_connector.upload_image_to_s3(image, f"recipe_images/originals/{recipe_base_content_id}.png", os.getenv("AWS_S3_BUCKET_NAME"))
     except Exception as e:
-        print(f"❌ Error while uploading image to S3: {e}")
+        logfire.error('이미지 S3 업로드 중 오류 발생 {error}, recipe_base_content_id: {recipe_base_content_id}', error=str(e), recipe_base_content_id=recipe_base_content_id)
         return
     
     difficulty = RecipeDifficulty(data['difficulty'])
@@ -172,17 +170,19 @@ def alert_fcm_token(recipe_base_content_id: int, body: str, image_url: str = "")
                 image_url
             )
         except Exception as e:
-            print(f"❌ Error while sending notification: {e}")
+            logfire.error('FCM 알림 전송 중 오류 발생 {error}, target_fcm_token: {target_fcm_token}', error=str(e), target_fcm_token=target_fcm_token)
             continue
 
 def poll_messages():
-    print("👂 SQS Subscriber is running...")
+    logfire.info('SQS Subscriber 시작 {queue_url}', queue_url=queue_url)
     cnt = 0
+    process_count = 0
+    start_time = time.time()
     tolerance = int(os.getenv("AWS_SQS_POLL_COUNT", 3))
     if tolerance == 0:
         tolerance = 1e9
+    
     while cnt < tolerance:
-        # print(queue_url)
         try:
             # 메시지 수신 (최대 10개, 최대 20초 대기)
             response = sqs.receive_message(
@@ -193,7 +193,7 @@ def poll_messages():
                 VisibilityTimeout=int(os.getenv("AWS_SQS_VISIBILITY_TIMEOUT", 30))  # 메시지 처리 시간
             )
         except Exception as e:
-            print(f"❌ Error while polling: {e}")
+            logfire.error('SQS 폴링 중 오류 발생 {error}, queue_url: {queue_url}', error=str(e), queue_url=queue_url)
             time.sleep(1)  # 재시도 전 대기
             continue
         
@@ -202,10 +202,10 @@ def poll_messages():
             continue
 
         messages = response.get('Messages', [])
-        # print(messages)
         if not messages:
             continue
         cnt = 0
+        process_count += 1
 
         target_messages = []
         for message in messages:
@@ -216,21 +216,21 @@ def poll_messages():
                 )
                 target_messages.append(message)
             except Exception as e:
-                print(f"❌ Error while deleting message: {e}")
+                logfire.error('SQS 메시지 삭제 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
                 continue
 
-        # print("processing messages")
         for message in target_messages:
             try:
                 process_message(message)
             except Exception as e:
-                print(f"❌ Error while processing message: {e}")
+                logfire.error('SQS 메시지 처리 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
                 sqs.send_message(
                     QueueUrl=queue_url,
                     MessageBody=message['Body'],
                     DelaySeconds=0
                 )
                 continue
+    logfire.info('SQS 메시지 처리 완료, 총 처리 횟수: {process_count}, 총 처리 시간: {process_time}', process_count=process_count, process_time=time.time() - start_time)
 
 if __name__ == "__main__":
     poll_messages()
