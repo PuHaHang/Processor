@@ -10,6 +10,8 @@ import json
 import logging
 from typing import Tuple, Optional, Any
 
+import logfire
+
 from ..refiner_strategy import RefinerStrategy
 from ...types import DataType, Payload, PayloadStatus
 from ....llm_client import GeminiClient
@@ -448,6 +450,17 @@ class GeminiRefiner(RefinerStrategy):
             if field not in parsed_json:
                 self._logger.warning(f"필수 필드 누락: {field}")
                 parsed_json[field] = self._get_default_value(field)
+            
+            if field == 'stages':
+                for stage in parsed_json[field]:
+                    try:
+                        if 'start_time' in stage:
+                            float(stage['start_time'])
+                        if 'end_time' in stage:
+                            float(stage['end_time'])
+                    except ValueError:
+                        logfire.warn(f"조리 과정 시간 형식 오류: {stage['start_time']} 또는 {stage['end_time']}")
+                        raise
         
         # JSON 포맷팅하여 반환
         return json.dumps(parsed_json, ensure_ascii=False, indent=2)
