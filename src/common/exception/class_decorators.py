@@ -8,6 +8,7 @@
 import asyncio
 import logging
 import inspect
+import logfire
 from typing import (
     Any, Callable, Coroutine, Optional, Union, Type, List, Dict, 
     Awaitable, TypeVar, Tuple, Generic, overload
@@ -146,8 +147,14 @@ class ExceptionHandler:
                 
                 # 커스텀 로깅
                 if self.log_level:
-                    log_func = getattr(logger, self.log_level.lower(), logger.error)
-                    log_func(f"함수 {func.__name__}에서 예외 발생: {custom_exception}")
+                    if self.log_level.lower() == 'error':
+                        logfire.error('함수에서 예외 발생 {func_name}, exception: {exception}', func_name=func.__name__, exception=str(custom_exception))
+                    elif self.log_level.lower() == 'warn':
+                        logfire.warn('함수에서 예외 발생 {func_name}, exception: {exception}', func_name=func.__name__, exception=str(custom_exception))
+                    elif self.log_level.lower() == 'info':
+                        logfire.info('함수에서 예외 발생 {func_name}, exception: {exception}', func_name=func.__name__, exception=str(custom_exception))
+                    elif self.log_level.lower() == 'debug':
+                        logfire.debug('함수에서 예외 발생 {func_name}, exception: {exception}', func_name=func.__name__, exception=str(custom_exception))
                 
                 # 재발생 또는 기본값 반환
                 if self.reraise:
@@ -164,12 +171,18 @@ class ExceptionHandler:
                 context, processed_exception = self.handle_exception(func, e, *args, **kwargs)
                 
                 # 동기 함수에서는 간단한 로깅만 수행
-                logger.error(f"함수 {func.__name__}에서 예외 발생: {processed_exception}")
+                logfire.error('함수에서 예외 발생 {func_name}, exception: {exception}', func_name=func.__name__, exception=str(processed_exception))
                 
                 # 커스텀 로깅
                 if self.log_level:
-                    log_func = getattr(logger, self.log_level.lower(), logger.error)
-                    log_func(f"함수 {func.__name__}에서 예외 발생: {e}")
+                    if self.log_level.lower() == 'error':
+                        logfire.error('함수에서 예외 발생 {func_name}, exception: {exception}', func_name=func.__name__, exception=str(e))
+                    elif self.log_level.lower() == 'warn':
+                        logfire.warn('함수에서 예외 발생 {func_name}, exception: {exception}', func_name=func.__name__, exception=str(e))
+                    elif self.log_level.lower() == 'info':
+                        logfire.info('함수에서 예외 발생 {func_name}, exception: {exception}', func_name=func.__name__, exception=str(e))
+                    elif self.log_level.lower() == 'debug':
+                        logfire.debug('함수에서 예외 발생 {func_name}, exception: {exception}', func_name=func.__name__, exception=str(e))
                 
                 # 재발생 또는 기본값 반환
                 if self.reraise:

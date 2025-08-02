@@ -1,13 +1,15 @@
 from datetime import datetime
 import json
 import os
-import boto3
 import time
+
+import boto3
+import logfire
 
 from src.common.image_generation.gemini_generator import GeminiGenerator
 from src.common.fcm.fcm_manager import send_notification
 from src.common.rdb.domain.recipe.dto.update_recipe_base_dto import UpdateRecipeBaseDto
-from src.common.rdb.domain.recipe.models import Ingredient, Recipe, RecipeDifficulty, RecipeState
+from src.common.rdb.domain.recipe.models import Ingredient, Recipe, RecipeDifficulty, RecipeLanguage, RecipeState
 from src.common.rdb.domain.recipe.recipe_base_service import RecipeBaseService
 from src.common.rdb.domain.recipe.recipe_service import RecipeService
 from src.common.rdb.domain.recipe.repository.ingredient_repository import IngredientRepository
@@ -27,8 +29,7 @@ processor_agent = Agent()
 def process_message(message):
     # 메시지 처리 로직
     try:
-        print(message)
-        # print(f"📩 Received message: {message['Body']}")
+        logfire.debug('SQS 메시지 처리 시작 {message}', message=message)
         json_data = json.loads(message['Body'])
 
         recipe_base_content_id = json_data['recipeBaseContentId']
@@ -55,12 +56,14 @@ def process_message(message):
             )
 
         payload = processor_agent.process(payload, int(recipe_base_content_id), language)
+        logfire.debug('SQS 메시지 처리 완료 {payload}', payload=payload)
 
         payload_saver(payload, recipe_base_content_id)
-        print("Payload:", payload.buffer.decode('utf-8'))
     except Exception as e:
-        print(f"❌ Error while processing message: {e}")
-        print(str(e))
+        recipe_base_service = RecipeBaseService()
+        with processor_agent.db_manager.session_scope() as session:
+            recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.FAILED)
+        logfire.error('SQS 메시지 처리 중 오류 발생 {error}, message: {message}', error=str(e), message=message, _exc_info=True)
 
 def payload_saver(payload: Payload, recipe_base_content_id: int):
     recipe_base_service = RecipeBaseService()
@@ -76,7 +79,7 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
     try:
         image_url = s3_connector.upload_image_to_s3(image, f"recipe_images/originals/{recipe_base_content_id}.png", os.getenv("AWS_S3_BUCKET_NAME"))
     except Exception as e:
-        print(f"❌ Error while uploading image to S3: {e}")
+        logfire.error('이미지 S3 업로드 중 오류 발생 {error}, recipe_base_content_id: {recipe_base_content_id}', error=str(e), recipe_base_content_id=recipe_base_content_id)
         return
     
     difficulty = RecipeDifficulty(data['difficulty'])
@@ -90,7 +93,8 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
     except Exception as e:
         servings = None
     
-    # print(data)
+    logfire.debug('payload_saver 시작 {data}, image_url: {image_url}', data=data, image_url=image_url)
+    logfire.debug('payload_saver 참조 정보 {payload.metadata}', payload=payload)
     with processor_agent.db_manager.session_scope() as session:
         ingredients = []
         for ingredient in data['ingredients']:
@@ -116,23 +120,40 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
             data['ingredients'][i] = ingredient
         
         recipe_base_content = recipe_base_service.get_recipe_base_content_by_id(session, recipe_base_content_id)
-
+        # print(data['stages'])
         recipe_base_content.title = data['title']
         recipe_base_content.author = data['author']
-        recipe_base_content.ingredients = data['ingredients']
-        recipe_base_content.stages = data['stages']
+        recipe_base_content.ingredients = json.dumps(data['ingredients'])
+        recipe_base_content.stages = json.dumps(data['stages'])
         recipe_base_content.updated_at = datetime.now()
 
-        recipe_base_service.update_recipe_base_content(session, recipe_base_content)
+        # recipe_base_service.update_recipe_base_content(session, recipe_base_content)
         recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.COMPLETED)
 
         recipe_base = recipe_base_service.get_recipe_base_by_id(session, recipe_base_content.recipe_base_id)
+        recipe_base.reference = {
+            **recipe_base.reference,
+            "metadata": {
+                **recipe_base.reference["metadata"],
+                "is_shorts": payload.metadata["reference"]["metadata"]["is_shorts"]
+            }
+        }
+        
+        logfire.debug('payload_saver 참조 정보 {recipe_base.reference}', recipe_base=recipe_base)
+        logfire.debug('payload data', data=data)
         recipe_base_service.update_recipe_base(session, UpdateRecipeBaseDto(
             recipe_base_id=recipe_base.recipe_base_id,
             difficulty=difficulty,
             estimated_time=estimated_time,
             servings=servings,
-            thumbnail=image_url
+            reference=recipe_base.reference,
+            thumbnail=image_url,
+
+            title=data['title'],
+            author=data['author'],
+            ingredients=data['ingredients'],
+            stages=data['stages'],
+            language=RecipeLanguage.ko,
         ))
     
     alert_fcm_token(recipe_base_content_id, data['title'], image_url)
@@ -172,17 +193,19 @@ def alert_fcm_token(recipe_base_content_id: int, body: str, image_url: str = "")
                 image_url
             )
         except Exception as e:
-            print(f"❌ Error while sending notification: {e}")
+            logfire.error('FCM 알림 전송 중 오류 발생 {error}, target_fcm_token: {target_fcm_token}', error=str(e), target_fcm_token=target_fcm_token)
             continue
 
 def poll_messages():
-    print("👂 SQS Subscriber is running...")
+    logfire.info('SQS Subscriber 시작 {queue_url}', queue_url=queue_url)
     cnt = 0
+    process_count = 0
+    start_time = time.time()
     tolerance = int(os.getenv("AWS_SQS_POLL_COUNT", 3))
     if tolerance == 0:
         tolerance = 1e9
+    
     while cnt < tolerance:
-        # print(queue_url)
         try:
             # 메시지 수신 (최대 10개, 최대 20초 대기)
             response = sqs.receive_message(
@@ -193,7 +216,7 @@ def poll_messages():
                 VisibilityTimeout=int(os.getenv("AWS_SQS_VISIBILITY_TIMEOUT", 30))  # 메시지 처리 시간
             )
         except Exception as e:
-            print(f"❌ Error while polling: {e}")
+            logfire.error('SQS 폴링 중 오류 발생 {error}, queue_url: {queue_url}', error=str(e), queue_url=queue_url)
             time.sleep(1)  # 재시도 전 대기
             continue
         
@@ -202,35 +225,37 @@ def poll_messages():
             continue
 
         messages = response.get('Messages', [])
-        # print(messages)
         if not messages:
             continue
         cnt = 0
+        process_count += 1
 
         target_messages = []
         for message in messages:
             try:
+                logfire.debug('SQS 메시지 삭제 시작 {message}', message=message)
                 sqs.delete_message(
                     QueueUrl=queue_url,
                     ReceiptHandle=message['ReceiptHandle']
                 )
                 target_messages.append(message)
             except Exception as e:
-                print(f"❌ Error while deleting message: {e}")
+                logfire.error('SQS 메시지 삭제 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
                 continue
 
-        # print("processing messages")
         for message in target_messages:
             try:
+                logfire.debug('SQS 메시지 처리 시작 {message}', message=message)
                 process_message(message)
             except Exception as e:
-                print(f"❌ Error while processing message: {e}")
+                logfire.error('SQS 메시지 처리 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
                 sqs.send_message(
                     QueueUrl=queue_url,
                     MessageBody=message['Body'],
                     DelaySeconds=0
                 )
                 continue
+    logfire.info('SQS 메시지 처리 완료, 총 처리 횟수: {process_count}, 총 처리 시간: {process_time}', process_count=process_count, process_time=time.time() - start_time)
 
 if __name__ == "__main__":
     poll_messages()

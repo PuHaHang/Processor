@@ -17,7 +17,7 @@ class UpdateRecipeBaseDto(BaseModel):
     Attributes:
         recipe_base_id: 레시피 베이스 ID (필수)
         thumbnail: 썸네일 이미지 URL
-        referrer: 참조 정보 (platform, url)
+        reference: 참조 정보 (platform, url)
         metadata: 컨텐츠 메타데이터
         servings: 인분 수
         difficulty: 요리 난이도
@@ -33,7 +33,7 @@ class UpdateRecipeBaseDto(BaseModel):
     
     # RecipeBase 필드들
     thumbnail: Optional[str] = None
-    referrer: Optional[Dict[str, Any]] = None
+    reference: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
     servings: Optional[int] = None
     difficulty: Optional[RecipeDifficulty] = None
@@ -43,7 +43,7 @@ class UpdateRecipeBaseDto(BaseModel):
     title: Optional[str] = None
     author: Optional[str] = None
     ingredients: Optional[List[Dict[str, Any]]] = None
-    stages: Optional[Dict[str, Any]] = None
+    stages: Optional[List[Dict[str, Any]]] = None
     language: Optional[RecipeLanguage] = None
     model_name: Optional[str] = None
 
@@ -126,7 +126,7 @@ class UpdateRecipeBaseDto(BaseModel):
                 if not isinstance(ingredient, dict):
                     raise ValueError("재료는 딕셔너리 형태여야 합니다.")
                 
-                required_fields = ['ingredient_name', 'ingredient_amount']
+                required_fields = ['name', 'amount']
                 for field in required_fields:
                     if field not in ingredient:
                         raise ValueError(f"재료는 '{field}' 필드를 포함해야 합니다.")
@@ -135,8 +135,8 @@ class UpdateRecipeBaseDto(BaseModel):
         
         return v
 
-    @field_validator('referrer')
-    def validate_referrer(cls, v):
+    @field_validator('reference')
+    def validate_reference(cls, v):
         """참조 정보 검증"""
         if v is not None:
             if not isinstance(v, dict):
@@ -154,8 +154,8 @@ class UpdateRecipeBaseDto(BaseModel):
         # RecipeBase 필드들
         if self.thumbnail is not None:
             fields['thumbnail'] = self.thumbnail
-        if self.referrer is not None:
-            fields['referrer'] = self.referrer
+        if self.reference is not None:
+            fields['reference'] = self.reference
         if self.metadata is not None:
             fields['metadata'] = self.metadata
         if self.servings is not None:
