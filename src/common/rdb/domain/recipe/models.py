@@ -12,6 +12,7 @@ from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from enum import Enum
 
 from sqlmodel import SQLModel, Field, Relationship, Column
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy import String, Integer, DateTime, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
@@ -77,7 +78,7 @@ class RecipeBase(SQLModel, table=True):
     
     reference: Optional[Dict[str, Any]] = Field(
         default=None,
-        sa_column=Column(JSONB),
+        sa_column=Column(MutableDict.as_mutable(JSONB)),
         description="컨텐츠 소스 (platform, url, metadata)"
     )
     
