@@ -10,6 +10,7 @@ import hashlib
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
+import logfire
 from sqlmodel import Session, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import func
@@ -28,9 +29,9 @@ from .repository import (
 )
 
 
-import logging
+# import logging
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class RecipeBaseService:
@@ -102,11 +103,11 @@ class RecipeBaseService:
                 )
                 self.recipe_base_state_repository.create(session, recipe_base_state)
             
-            logger.info(f"Recipe base created: {recipe_base.recipe_base_id}")
+            logfire.info(f"Recipe base created: {recipe_base.recipe_base_id}")
             return recipe_base
             
         except SQLAlchemyError as e:
-            logger.error(f"Error creating recipe base: {e}")
+            logfire.error(f"Error creating recipe base: {e}")
             raise
 
     def _create_ingredient_tags(self, session: Session, ingredients: List[str]) -> None:
@@ -120,10 +121,10 @@ class RecipeBaseService:
         try:
             # Repository를 통해 재료 태그 생성
             self.ingredient_repository.bulk_create_or_get(session, ingredients)
-            logger.debug(f"Created {len(ingredients)} ingredient tags")
+            logfire.debug(f"Created {len(ingredients)} ingredient tags")
             
         except SQLAlchemyError as e:
-            logger.error(f"Error creating ingredient tags: {e}")
+            logfire.error(f"Error creating ingredient tags: {e}")
             raise
 
     def get_recipe_base_by_id(self, session: Session, recipe_base_id: int) -> Optional[RecipeBase]:
@@ -145,14 +146,14 @@ class RecipeBaseService:
             recipe_base = self.recipe_base_repository.find_by_id(session, recipe_base_id)
             
             if recipe_base:
-                logger.debug(f"Recipe base found: {recipe_base_id}")
+                logfire.debug(f"Recipe base found: {recipe_base_id}")
             else:
-                logger.debug(f"Recipe base not found: {recipe_base_id}")
+                logfire.debug(f"Recipe base not found: {recipe_base_id}")
                 
             return recipe_base
             
         except SQLAlchemyError as e:
-            logger.error(f"Error getting recipe base by ID: {e}")
+            logfire.error(f"Error getting recipe base by ID: {e}")
             raise
 
     def get_recipe_base_by_checksum(self, session: Session, checksum: str) -> Optional[RecipeBase]:
@@ -173,14 +174,14 @@ class RecipeBaseService:
             recipe_base = self.recipe_base_repository.find_by_checksum(session, checksum)
             
             if recipe_base:
-                logger.debug(f"Recipe base found by checksum: {checksum}")
+                logfire.debug(f"Recipe base found by checksum: {checksum}")
             else:
-                logger.debug(f"Recipe base not found by checksum: {checksum}")
+                logfire.debug(f"Recipe base not found by checksum: {checksum}")
                 
             return recipe_base
             
         except SQLAlchemyError as e:
-            logger.error(f"Error getting recipe base by checksum: {e}")
+            logfire.error(f"Error getting recipe base by checksum: {e}")
             raise
 
     def get_recipe_bases_by_difficulty(self, session: Session, difficulty: RecipeDifficulty, limit: int = 100, offset: int = 0) -> List[RecipeBase]:
@@ -202,11 +203,11 @@ class RecipeBaseService:
         try:
             recipe_bases = self.recipe_base_repository.find_by_difficulty(session, difficulty, limit, offset)
             
-            logger.debug(f"Found {len(recipe_bases)} recipe bases for difficulty: {difficulty}")
+            logfire.debug(f"Found {len(recipe_bases)} recipe bases for difficulty: {difficulty}")
             return recipe_bases
             
         except SQLAlchemyError as e:
-            logger.error(f"Error getting recipe bases by difficulty: {e}")
+            logfire.error(f"Error getting recipe bases by difficulty: {e}")
             raise
 
     def get_popular_recipe_bases(self, session: Session, limit: int = 100, offset: int = 0) -> List[RecipeBase]:
@@ -227,11 +228,11 @@ class RecipeBaseService:
         try:
             recipe_bases = self.recipe_base_repository.find_popular(session, limit, offset)
             
-            logger.debug(f"Found {len(recipe_bases)} popular recipe bases")
+            logfire.debug(f"Found {len(recipe_bases)} popular recipe bases")
             return recipe_bases
             
         except SQLAlchemyError as e:
-            logger.error(f"Error getting popular recipe bases: {e}")
+            logfire.error(f"Error getting popular recipe bases: {e}")
             raise
 
     def delete_recipe_base(self, session: Session, recipe_base_id: int) -> bool:
@@ -253,16 +254,16 @@ class RecipeBaseService:
             recipe_base = self.recipe_base_repository.find_by_id(session, recipe_base_id)
             
             if not recipe_base:
-                logger.warning(f"Recipe base not found for deletion: {recipe_base_id}")
+                logfire.warning(f"Recipe base not found for deletion: {recipe_base_id}")
                 return False
             
             result = self.recipe_base_repository.delete(session, recipe_base)
             
-            logger.info(f"Recipe base deleted: {recipe_base_id}")
+            logfire.info(f"Recipe base deleted: {recipe_base_id}")
             return result
             
         except SQLAlchemyError as e:
-            logger.error(f"Error deleting recipe base: {e}")
+            logfire.error(f"Error deleting recipe base: {e}")
             raise
 
     def update_recipe_base(self, session: Session, dto: UpdateRecipeBaseDto) -> Optional[RecipeBase]:
@@ -287,62 +288,68 @@ class RecipeBaseService:
             ).first()
             
             if not recipe_base:
-                logger.warning(f"Recipe base not found for update: {dto.recipe_base_id}")
+                logfire.warning(f"Recipe base not found for update: {dto.recipe_base_id}")
                 return None
             
             update_fields = dto.get_update_fields()
             updated_sections = []
             
             # 기본 정보 업데이트
-            base_fields = ['thumbnail', 'referrer', 'metadata', 'servings', 'difficulty', 'estimated_time']
+            base_fields = ['thumbnail', 'reference', 'metadata', 'servings', 'difficulty', 'estimated_time']
             if any(field in update_fields for field in base_fields):
                 for field in base_fields:
                     if field in update_fields:
                         setattr(recipe_base, field, update_fields[field])
                 
                 recipe_base.updated_at = datetime.now()
+                self.recipe_base_repository.update(session, recipe_base)
                 updated_sections.append('base')
             
             # 컨텐츠 정보 업데이트
             content_fields = ['title', 'author', 'ingredients', 'stages', 'language', 'model_name']
             if any(field in update_fields for field in content_fields):
-                # 컨텐츠가 없으면 생성
-                if not recipe_base.contents:
-                    content = RecipeBaseContent(
+                recipe_base_contents = self.recipe_base_content_repository.find_by_recipe_base_id(session, recipe_base.recipe_base_id)
+                recipe_base_content = None
+                for src in recipe_base_contents:
+                    if src.language == RecipeLanguage.ko:
+                        recipe_base_content = src
+                        break
+                
+                if not recipe_base_content:
+                    recipe_base_content = RecipeBaseContent(
                         recipe_base_id=recipe_base.recipe_base_id,
                         title=update_fields.get('title', ''),
+                        author=update_fields.get('author', ''),
+                        ingredients=update_fields.get('ingredients', []),
+                        stages=update_fields.get('stages', []),
                         language=update_fields.get('language', RecipeLanguage.ko),
                         model_name=update_fields.get('model_name', 'default')
                     )
-                    session.add(content)
-                    recipe_base.contents = [content]
+                    recipe_base_content = self.recipe_base_content_repository.create(session, recipe_base_content)
+                else:
+                    for field in content_fields:
+                        if field in update_fields:
+                            setattr(recipe_base_content, field, update_fields[field])
+                    recipe_base_content = self.recipe_base_content_repository.update(session, recipe_base_content)
                 
                 # 첫 번째 컨텐츠 업데이트
-                content = recipe_base.contents[0]
+                content = recipe_base_content
                 for field in content_fields:
                     if field in update_fields:
                         setattr(content, field, update_fields[field])
                 
                 content.updated_at = datetime.now()
                 updated_sections.append('content')
-                
-                # 재료가 업데이트된 경우 태그 재생성
-                if 'ingredients' in update_fields and update_fields['ingredients']:
-                    self._create_ingredient_tags(
-                        session,
-                        update_fields['ingredients']
-                    )
             
             if updated_sections:
-                session.flush()
-                logger.info(f"Recipe base updated: {dto.recipe_base_id}, sections: {updated_sections}")
+                session.commit()
+                logfire.info(f"Recipe base updated: {dto.recipe_base_id}, sections: {updated_sections}")
             else:
-                logger.debug(f"No valid fields to update for recipe base: {dto.recipe_base_id}")
-            
+                logfire.debug(f"No valid fields to update for recipe base: {dto.recipe_base_id}")
             return recipe_base
             
         except SQLAlchemyError as e:
-            logger.error(f"Error updating recipe base: {e}")
+            logfire.error(f"Error updating recipe base: {e}")
             raise
 
     def increment_view_count(self, session: Session, recipe_base_id: int) -> Optional[RecipeBase]:
@@ -363,16 +370,16 @@ class RecipeBaseService:
             recipe_base = self.recipe_base_repository.find_by_id(session, recipe_base_id)
             
             if not recipe_base:
-                logger.warning(f"Recipe base not found for view count increment: {recipe_base_id}")
+                logfire.warning(f"Recipe base not found for view count increment: {recipe_base_id}")
                 return None
             
             recipe_base = self.recipe_base_repository.increment_view_count(session, recipe_base)
             
-            logger.debug(f"Recipe base view count incremented: {recipe_base_id}")
+            logfire.debug(f"Recipe base view count incremented: {recipe_base_id}")
             return recipe_base
             
         except SQLAlchemyError as e:
-            logger.error(f"Error incrementing recipe base view count: {e}")
+            logfire.error(f"Error incrementing recipe base view count: {e}")
             raise
 
     def get_all_recipe_bases(self, session: Session, limit: int = 100, offset: int = 0) -> List[RecipeBase]:
@@ -393,11 +400,11 @@ class RecipeBaseService:
         try:
             recipe_bases = self.recipe_base_repository.find_all(session, limit, offset)
             
-            logger.debug(f"Found {len(recipe_bases)} recipe bases")
+            logfire.debug(f"Found {len(recipe_bases)} recipe bases")
             return recipe_bases
             
         except SQLAlchemyError as e:
-            logger.error(f"Error getting all recipe bases: {e}")
+            logfire.error(f"Error getting all recipe bases: {e}")
             raise
 
     def get_recipe_base_count(self, session: Session) -> int:
@@ -416,11 +423,11 @@ class RecipeBaseService:
         try:
             count = self.recipe_base_repository.count(session)
             
-            logger.debug(f"Total recipe base count: {count}")
+            logfire.debug(f"Total recipe base count: {count}")
             return count
             
         except SQLAlchemyError as e:
-            logger.error(f"Error getting recipe base count: {e}")
+            logfire.error(f"Error getting recipe base count: {e}")
             raise
 
     def get_recipe_base_statistics(self, session: Session) -> Dict[str, Any]:
@@ -479,11 +486,11 @@ class RecipeBaseService:
                 }
             }
             
-            logger.debug(f"Recipe base statistics calculated: {statistics}")
+            logfire.debug(f"Recipe base statistics calculated: {statistics}")
             return statistics
             
         except SQLAlchemyError as e:
-            logger.error(f"Error getting recipe base statistics: {e}")
+            logfire.error(f"Error getting recipe base statistics: {e}")
             raise
 
     def search_recipe_bases(self, session: Session, dto: SearchRecipeBasesDto) -> List[RecipeBase]:
@@ -530,11 +537,11 @@ class RecipeBaseService:
             
             recipe_bases = query.offset(dto.offset).limit(dto.limit).all()
             
-            logger.debug(f"Found {len(recipe_bases)} recipe bases with search criteria")
+            logfire.debug(f"Found {len(recipe_bases)} recipe bases with search criteria")
             return recipe_bases
             
         except SQLAlchemyError as e:
-            logger.error(f"Error searching recipe bases: {e}")
+            logfire.error(f"Error searching recipe bases: {e}")
             raise
 
     def update_recipe_base_state(self, session: Session, recipe_base_id: int, target_state: RecipeState) -> Optional[RecipeState]:
@@ -566,11 +573,11 @@ class RecipeBaseService:
                 state.state = target_state
                 state = self.recipe_base_state_repository.update(session, state)
             
-            logger.info(f"Recipe base state updated: {recipe_base_id}, state: {target_state}")
+            logfire.info(f"Recipe base state updated: {recipe_base_id}, state: {target_state}")
             return state
             
         except SQLAlchemyError as e:
-            logger.error(f"Error updating recipe base state: {e}")
+            logfire.error(f"Error updating recipe base state: {e}")
             raise
 
     def _generate_checksum(self, url: str) -> str:
@@ -585,7 +592,7 @@ class RecipeBaseService:
             recipe_base_content = self.recipe_base_content_repository.find_by_id(session, recipe_base_content_id)
             return recipe_base_content
         except SQLAlchemyError as e:
-            logger.error(f"Error getting recipe base content by ID: {e}")
+            logfire.error(f"Error getting recipe base content by ID: {e}")
             raise
 
     def update_recipe_base_content(self, session: Session, recipe_base_content: RecipeBaseContent) -> Optional[RecipeBaseContent]:
@@ -596,5 +603,5 @@ class RecipeBaseService:
             recipe_base_content = self.recipe_base_content_repository.update(session, recipe_base_content)
             return recipe_base_content
         except SQLAlchemyError as e:
-            logger.error(f"Error updating recipe base content: {e}")
+            logfire.error(f"Error updating recipe base content: {e}")
             raise
