@@ -9,7 +9,7 @@ import logfire
 from src.common.image_generation.gemini_generator import GeminiGenerator
 from src.common.fcm.fcm_manager import send_notification
 from src.common.rdb.domain.recipe.dto.update_recipe_base_dto import UpdateRecipeBaseDto
-from src.common.rdb.domain.recipe.models import Ingredient, Recipe, RecipeDifficulty, RecipeState
+from src.common.rdb.domain.recipe.models import Ingredient, Recipe, RecipeDifficulty, RecipeLanguage, RecipeState
 from src.common.rdb.domain.recipe.recipe_base_service import RecipeBaseService
 from src.common.rdb.domain.recipe.recipe_service import RecipeService
 from src.common.rdb.domain.recipe.repository.ingredient_repository import IngredientRepository
@@ -60,7 +60,10 @@ def process_message(message):
 
         payload_saver(payload, recipe_base_content_id)
     except Exception as e:
-        logfire.error('SQS 메시지 처리 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
+        recipe_base_service = RecipeBaseService()
+        with processor_agent.db_manager.session_scope() as session:
+            recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.FAILED)
+        logfire.error('SQS 메시지 처리 중 오류 발생 {error}, message: {message}', error=str(e), message=message, _exc_info=True)
 
 def payload_saver(payload: Payload, recipe_base_content_id: int):
     recipe_base_service = RecipeBaseService()
@@ -91,6 +94,7 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
         servings = None
     
     logfire.debug('payload_saver 시작 {data}, image_url: {image_url}', data=data, image_url=image_url)
+    logfire.debug('payload_saver 참조 정보 {payload.metadata}', payload=payload)
     with processor_agent.db_manager.session_scope() as session:
         ingredients = []
         for ingredient in data['ingredients']:
@@ -116,23 +120,40 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
             data['ingredients'][i] = ingredient
         
         recipe_base_content = recipe_base_service.get_recipe_base_content_by_id(session, recipe_base_content_id)
-
+        # print(data['stages'])
         recipe_base_content.title = data['title']
         recipe_base_content.author = data['author']
-        recipe_base_content.ingredients = data['ingredients']
-        recipe_base_content.stages = data['stages']
+        recipe_base_content.ingredients = json.dumps(data['ingredients'])
+        recipe_base_content.stages = json.dumps(data['stages'])
         recipe_base_content.updated_at = datetime.now()
 
-        recipe_base_service.update_recipe_base_content(session, recipe_base_content)
+        # recipe_base_service.update_recipe_base_content(session, recipe_base_content)
         recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.COMPLETED)
 
         recipe_base = recipe_base_service.get_recipe_base_by_id(session, recipe_base_content.recipe_base_id)
+        recipe_base.reference = {
+            **recipe_base.reference,
+            "metadata": {
+                **recipe_base.reference["metadata"],
+                "is_shorts": payload.metadata["reference"]["metadata"]["is_shorts"]
+            }
+        }
+        
+        logfire.debug('payload_saver 참조 정보 {recipe_base.reference}', recipe_base=recipe_base)
+        logfire.debug('payload data', data=data)
         recipe_base_service.update_recipe_base(session, UpdateRecipeBaseDto(
             recipe_base_id=recipe_base.recipe_base_id,
             difficulty=difficulty,
             estimated_time=estimated_time,
             servings=servings,
-            thumbnail=image_url
+            reference=recipe_base.reference,
+            thumbnail=image_url,
+
+            title=data['title'],
+            author=data['author'],
+            ingredients=data['ingredients'],
+            stages=data['stages'],
+            language=RecipeLanguage.ko,
         ))
     
     alert_fcm_token(recipe_base_content_id, data['title'], image_url)
