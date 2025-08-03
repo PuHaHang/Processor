@@ -62,7 +62,10 @@ class ZeroShotClassifier (Classifier):
             pred_dict = self._classify(sequence)
         
         # entailment 점수가 neutral + contradiction 점수보다 높으면 레시피 관련으로 판단
-        return pred_dict["entailment"] > pred_dict["neutral"] + pred_dict["contradiction"]
+        if not (pred_dict["entailment"] > pred_dict["neutral"] + pred_dict["contradiction"]):
+            raise ValueError("Sequence is not a recipe")
+        
+        return True
 
     def _classify(self, sequence: str) -> dict[str, float]:
         # 레시피 분류를 위한 가설 문장 (한국어)
