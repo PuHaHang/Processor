@@ -6,6 +6,7 @@ URL에서 오디오를 다운로드하고, 필요시 형식을 변환한 후, ST
 """
 
 import logfire
+from src.common.processor.evaluator.strategies.generic_evaluator import GenericEvaluator
 from src.common.processor.evaluator.strategies.yt_dlp_evaluator import YtDlpEvaluator
 from src.common.rdb.common.database import DatabaseManager
 from src.common.rdb.domain.recipe.models import RecipeState
@@ -128,7 +129,11 @@ class Agent:
                     message="파이프라인 중간에 페이로드가 None이 되었습니다",
                     processor_name=processor.get_processor_type().name
                 )
-            
+            if payload.processor and payload.processor.get_processor_type() == ProcessorType.DOWNLOADER:
+                YtDlpEvaluator().evaluate(payload)
+            elif payload.data_type == DataType.TEXT:
+                GenericEvaluator().evaluate(payload)
+
             # 최대 재시도 횟수만큼 시도
             for retry_count in range(self.max_retry):
                 # 현재 프로세서가 버퍼 데이터를 지원하는지 확인
