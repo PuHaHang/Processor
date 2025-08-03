@@ -239,6 +239,11 @@ def poll_messages():
                     QueueUrl=queue_url,
                     ReceiptHandle=message['ReceiptHandle']
                 )
+
+                if (depth := int(message['depth'])) > int(os.getenv("AWS_SQS_MAX_DEPTH", 10)):
+                    continue
+                
+                message['depth'] = str(depth + 1)
                 target_messages.append(message)
             except Exception as e:
                 logfire.error('SQS 메시지 삭제 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
