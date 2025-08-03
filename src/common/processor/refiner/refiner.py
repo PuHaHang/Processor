@@ -62,3 +62,6 @@ class Refiner(Processor):
             if strategy.is_supported(payload):
                 return strategy
         return None
+    
+    def get_processor_type(self) -> ProcessorType:
+        return self.processor_type
