@@ -131,13 +131,14 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
         recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.COMPLETED)
 
         recipe_base = recipe_base_service.get_recipe_base_by_id(session, recipe_base_content.recipe_base_id)
-        recipe_base.reference = {
-            **recipe_base.reference,
-            "metadata": {
-                **recipe_base.reference["metadata"],
-                "is_shorts": payload.metadata["reference"]["metadata"]["is_shorts"]
+        if (is_shorts := payload.metadata.get("reference", {}).get("metadata", {}).get("is_shorts")) is not None:
+            recipe_base.reference = {
+                **recipe_base.reference,
+                "metadata": {
+                    **recipe_base.reference["metadata"],
+                    "is_shorts": is_shorts
+                }
             }
-        }
         
         logfire.debug('payload_saver 참조 정보 {recipe_base.reference}', recipe_base=recipe_base)
         logfire.debug('payload data', data=data)
