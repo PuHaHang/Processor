@@ -74,10 +74,12 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
     image_generator = GeminiGenerator()
     image_prompt = data['image_prompt']
     image = image_generator.generate_image(image_prompt)
+
+    IMAGE_PATH = os.getenv("IMAGE_PATH")
     
     image_url = None
     try:
-        image_url = s3_connector.upload_image_to_s3(image, f"recipe_images/originals/{recipe_base_content_id}.png", os.getenv("AWS_S3_BUCKET_NAME"))
+        image_url = s3_connector.upload_image_to_s3(image, f"{IMAGE_PATH}/originals/{recipe_base_content_id}.png", os.getenv("AWS_S3_BUCKET_NAME"))
     except Exception as e:
         logfire.error('이미지 S3 업로드 중 오류 발생 {error}, recipe_base_content_id: {recipe_base_content_id}', error=str(e), recipe_base_content_id=recipe_base_content_id)
         return
