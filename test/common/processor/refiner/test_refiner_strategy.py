@@ -121,7 +121,7 @@ class TestRefinerStrategy:
                     },
                     data_type=payload.data_type,
                     status=PayloadStatus.COMPLETED,
-                    processor=payload.processor
+                    processor=self
                 )
         
         refiner = TestRefiner()
@@ -192,7 +192,7 @@ class TestRefinerStrategyUsage:
                     },
                     data_type=payload.data_type,
                     status=PayloadStatus.COMPLETED,
-                    processor=payload.processor
+                    processor=self
                 )
         
         return MockRefinerStrategy()

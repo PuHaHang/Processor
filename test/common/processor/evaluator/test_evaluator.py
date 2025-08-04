@@ -81,7 +81,7 @@ class TestEvaluator:
             },
             data_type=DataType.AUDIO,
             status=PayloadStatus.COMPLETED,
-            processor=YtDlpDownloader
+            processor=YtDlpDownloader()
         )
     
     

@@ -81,7 +81,7 @@ class TestYtDlpEvaluator:
             },
             data_type=DataType.AUDIO,
             status=PayloadStatus.COMPLETED,
-            processor=YtDlpDownloader
+            processor=YtDlpDownloader()
         )
     
     
@@ -98,7 +98,7 @@ class TestYtDlpEvaluator:
             metadata={},
             data_type=DataType.AUDIO,
             status=PayloadStatus.COMPLETED,
-            processor=YtDlpDownloader
+            processor=YtDlpDownloader()
         )
     
     
@@ -204,7 +204,7 @@ class TestYtDlpEvaluator:
             },
             data_type=DataType.AUDIO,
             status=PayloadStatus.COMPLETED,
-            processor=YtDlpDownloader
+            processor=YtDlpDownloader()
         )
         
         # 테스트 실행

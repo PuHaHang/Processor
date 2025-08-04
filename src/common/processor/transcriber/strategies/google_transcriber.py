@@ -78,7 +78,7 @@ class GoogleTranscriber (TranscriberStrategy):
             metadata={"recognizer": "google"},
             data_type=DataType.TEXT,
             status=PayloadStatus.COMPLETED,
-            processor=type(self)
+            processor=self
         )
 
 

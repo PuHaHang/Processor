@@ -96,7 +96,7 @@ class TestInitEvaluator:
             metadata={"test": "metadata"},
             data_type=DataType.TEXT,
             status=PayloadStatus.INIT,
-            processor=MockProcessor
+            processor=MockProcessor()
         )
     
     
@@ -323,7 +323,7 @@ class TestInitEvaluator:
                 metadata={},
                 data_type=DataType.TEXT,
                 status=PayloadStatus.INIT,
-                processor=MockProcessor
+                processor=MockProcessor()
             ),
         ]
         

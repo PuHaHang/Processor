@@ -135,7 +135,7 @@ class YtDlpDownloader (DownloaderStrategy):
             },
             data_type=DataType.AUDIO,
             status=PayloadStatus.COMPLETED,
-            processor=type(self)
+            processor=self
         )
 
 

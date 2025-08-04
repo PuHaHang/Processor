@@ -92,7 +92,7 @@ class TestGenericEvaluator:
             metadata={"duration": 120},
             data_type=DataType.AUDIO,
             status=PayloadStatus.COMPLETED,
-            processor=YtDlpDownloader
+            processor=YtDlpDownloader()
         )
     
     
