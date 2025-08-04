@@ -28,7 +28,6 @@ jobs:
 
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      FCM_SERVICE_ACCOUNT_KEY: ${{ secrets.FCM_SERVICE_ACCOUNT_KEY }}
       
       AWS_SQS_POLL_COUNT: ${{ vars.AWS_SQS_POLL_COUNT }}
       AWS_SQS_MAX_NUMBER_OF_MESSAGES: ${{ vars.AWS_SQS_MAX_NUMBER_OF_MESSAGES }}
@@ -157,7 +156,6 @@ jobs:
             --arg DOCKER_IMAGE_NAME "${{ vars.DOCKER_IMAGE_NAME }}" \
             --arg OPENAI_API_KEY "${{ secrets.OPENAI_API_KEY }}" \
             --arg GEMINI_API_KEY "${{ secrets.GEMINI_API_KEY }}" \
-            --arg FCM_SERVICE_ACCOUNT_KEY "${{ secrets.FCM_SERVICE_ACCOUNT_KEY }}" \
             --arg AWS_SQS_POLL_COUNT "${{ vars.AWS_SQS_POLL_COUNT }}" \
             --arg AWS_SQS_MAX_NUMBER_OF_MESSAGES "${{ vars.AWS_SQS_MAX_NUMBER_OF_MESSAGES }}" \
             --arg AWS_SQS_WAIT_TIME_SECONDS "${{ vars.AWS_SQS_WAIT_TIME_SECONDS }}" \
@@ -182,7 +180,6 @@ jobs:
                {"name": "DOCKER_IMAGE_NAME", "value": $DOCKER_IMAGE_NAME},
                {"name": "OPENAI_API_KEY", "value": $OPENAI_API_KEY},
                {"name": "GEMINI_API_KEY", "value": $GEMINI_API_KEY},
-               {"name": "FCM_SERVICE_ACCOUNT_KEY", "value": $FCM_SERVICE_ACCOUNT_KEY},
                {"name": "AWS_SQS_POLL_COUNT", "value": $AWS_SQS_POLL_COUNT},
                {"name": "AWS_SQS_MAX_NUMBER_OF_MESSAGES", "value": $AWS_SQS_MAX_NUMBER_OF_MESSAGES},
                {"name": "AWS_SQS_WAIT_TIME_SECONDS", "value": $AWS_SQS_WAIT_TIME_SECONDS},
