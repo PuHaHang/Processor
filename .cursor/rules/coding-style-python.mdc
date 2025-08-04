@@ -1,0 +1,24 @@
+---
+description: "Python 코딩 스타일 가이드라인"
+globs:
+  - "src/**/*.py"
+  - "test/**/*.py"
+alwaysApply: true
+---
+
+# Python 코딩 스타일
+
+## 기본 원칙
+- PEP 8을 준수합니다
+- 가독성을 최우선으로 합니다
+- 일관된 스타일을 유지합니다
+
+## 네이밍 규칙
+- 변수: snake_case, 변수명은 해당 변수의 사용 목적, 적용된 디자인 패턴, 입출력과의 관계를 통해 작성
+- 함수: snake_case, 함수명은 동작 방식, 사용 목적, 연계된 패턴과 상속에 맞춰 작성
+- 클래스: PascalCase
+- 상수: UPPER_CASE
+
+## 문서화
+- 모든 public 함수에는 docstring 작성
+- 타입 힌트 사용 필수

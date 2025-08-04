@@ -1,0 +1,91 @@
+# Git 관련 파일
+.git
+.gitignore
+.github
+
+# Python 관련
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+build
+develop-eggs
+dist
+downloads
+eggs
+.eggs
+lib
+lib64
+parts
+sdist
+var
+wheels
+*.egg-info
+.installed.cfg
+*.egg
+MANIFEST
+
+# 가상환경
+venv
+env
+ENV
+env.bak
+venv.bak
+.venv
+
+# 테스트 관련
+.pytest_cache
+.coverage
+.tox
+htmlcov
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis
+
+# IDE 관련
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS 관련
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 로그 파일
+*.log
+logs
+
+# 임시 파일
+*.tmp
+*.temp
+temp
+
+# 개발 전용 파일
+requirements-dev.txt
+pytest.ini
+.env.local
+.env.development
+
+# Docker 관련
+.dockerignore
+docker-compose*.yml
+
+# 문서
+README.md
+docs/
+*.md
+
+# 기타
+.mypy_cache
+.dmypy.json
+dmypy.json 

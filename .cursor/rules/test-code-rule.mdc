@@ -1,0 +1,664 @@
+---
+description: Ruleset for Python Test Code with Pytest
+alwaysApply: false
+---
+
+# Python Test Code RuleSet with pytest
+
+**Use "pytest" command for checking the code after whatever is changed in test directory.**
+**Use ./venv virtual environment for test the code.**
+**Conform the test directory rule**
+
+## 📋 Application Scenarios
+
+This ruleset applies to the following situations:
+
+### Mandatory Application Scenarios
+- Writing **Unit Tests**
+- Writing **Integration Tests**
+- Testing **code with external dependencies**
+- Writing **tests for CI/CD environments**
+- Testing **complex scenarios requiring Mocks**
+
+### Recommended Application Scenarios
+- **TDD (Test-Driven Development)** development
+- **Pre/post-refactoring behavior verification**
+- **API endpoint testing**
+- **Database integration testing**
+
+---
+
+## 🎯 Detailed Task Analysis (Tree of Thoughts)
+
+### 1. Test Class Design Task
+
+```
+Test Class Design
+├── 1.1 Class Structure Definition
+│   ├── 1.1.1 Apply Single Responsibility Principle
+│   ├── 1.1.2 Logical Grouping
+│   └── 1.1.3 Consider Inheritance Relationships
+├── 1.2 Naming Convention Application
+│   ├── 1.2.1 Test + TargetClassName Pattern
+│   ├── 1.2.2 Feature-based Subdivision
+│   └── 1.2.3 Reflect Hierarchical Structure
+└── 1.3 Documentation and Metadata
+    ├── 1.3.1 Write Class Docstrings
+    ├── 1.3.2 Specify Test Purpose
+    └── 1.3.3 Describe Dependencies and Prerequisites
+```
+
+### 2. Test Method Composition Task
+
+```
+Test Method Composition
+├── 2.1 Method Design Principles
+│   ├── 2.1.1 Apply AAA Pattern (Arrange, Act, Assert)
+│   ├── 2.1.2 Single Test Case Principle
+│   └── 2.1.3 Ensure Independence
+├── 2.2 Naming Strategy
+│   ├── 2.2.1 test_ + Action Description Pattern
+│   ├── 2.2.2 Scenario-based Naming
+│   └── 2.2.3 Exception Situation Specification
+└── 2.3 Test Scope Definition
+    ├── 2.3.1 Happy Path Testing
+    ├── 2.3.2 Edge Case Testing
+    └── 2.3.3 Exception Situation Testing
+```
+
+### 3. Fixture Utilization Task
+
+```
+Fixture Utilization
+├── 3.1 Fixture Design
+│   ├── 3.1.1 Automate Data Preparation
+│   ├── 3.1.2 Resource Management
+│   └── 3.1.3 Test Environment Setup
+├── 3.2 Scope Management
+│   ├── 3.2.1 Function Level Fixture
+│   ├── 3.2.2 Class Level Fixture
+│   └── 3.2.3 Module/Session Level Fixture
+└── 3.3 Dependency Injection
+    ├── 3.3.1 Mock Object Injection
+    ├── 3.3.2 Test Data Injection
+    └── 3.3.3 Environment Configuration Injection
+```
+
+### 4. Mock Utilization Task
+
+```
+Mock Utilization
+├── 4.1 Mock Strategy
+│   ├── 4.1.1 External Dependency Isolation
+│   ├── 4.1.2 Complex Object Simulation
+│   └── 4.1.3 Side Effect Prevention
+├── 4.2 Mock Implementation
+│   ├── 4.2.1 unittest.mock Utilization
+│   ├── 4.2.2 Patch Decorator Usage
+│   └── 4.2.3 MagicMock Application
+└── 4.3 Mock Verification
+    ├── 4.3.1 Call Count Verification
+    ├── 4.3.2 Argument Verification
+    └── 4.3.3 Call Order Verification
+```
+
+---
+
+## 📚 Detailed Task Descriptions
+
+### Task 1: Test Class Design
+
+**Purpose**: Create maintainable and understandable test class structures
+
+**Core Principles**:
+- One class tests one target class/module
+- Logical grouping by functionality
+- Clear naming and documentation
+
+**Implementation Methods**:
+- Use `Test + TargetClassName` pattern
+- Specify test purpose and scope with docstrings
+- Group related tests into a single class
+
+### Task 2: Test Method Composition
+
+**Purpose**: Write independent and clear test cases
+
+**Core Principles**:
+- Follow AAA pattern (Arrange, Act, Assert)
+- One method handles one test case only
+- Clear and descriptive naming
+
+**Implementation Methods**:
+- Use `test_` prefix + action description pattern
+- Scenario-based naming (e.g., `test_process_with_valid_data`)
+- Describe test scenarios with docstrings
+
+### Task 3: Fixture Utilization
+
+**Purpose**: Automate test data preparation and enable code reuse
+
+**Core Principles**:
+- Eliminate duplicate setup code
+- Optimize performance with appropriate scope settings
+- Ensure test isolation
+
+**Implementation Methods**:
+- Use `@pytest.fixture` decorator
+- Set appropriate scope (function, class, module, session)
+- Utilize parameterized fixtures
+
+### Task 4: Mock Utilization
+
+**Purpose**: Isolate external dependencies and ensure test independence
+
+**Core Principles**:
+- Remove external system dependencies
+- Improve test execution speed
+- Ensure predictable test results
+
+**Implementation Methods**:
+- Utilize `unittest.mock` module
+- Apply selective Mock with `@patch` decorator
+- Verify Mock object behavior
+
+---
+
+## 🔧 Specific Implementation Rules
+
+### 1. File and Directory Structure (strict)
+```
+test/
+├── conftest.py                    # Global fixture definitions
+├── __init__.py                   # Test module initialization
+├── common/                         # Unit tests
+│   ├── __init__.py
+│   └── common_fixtures.py
+└── domain/
+    ├── inner_domain/
+    │   ├── __init__.py
+    │   ├── conftest.py
+    │   └── test_inner_something.py
+    ├── test_integration_scenario.py # Integration tests
+    ├── test_module_name.py       # Module-specific tests
+    └── test_class_name.py        # Class-specific tests
+
+requirements-dev.txt
+pytest.ini
+```
+
+### 2. Naming Conventions
+- **File names**: `test_` + target_module_name + `.py`
+- **Class names**: `Test` + TargetClassName
+- **Method names**: `test_` + action_description + `_with_` + condition
+- **Fixture names**: `mock_` + object_name or feature_name
+
+### 3. Documentation Rules
+- Write docstrings for all test classes and methods
+- Describe parameters with Args and Returns sections
+- Specify test scenarios and expected results
+
+### 4. Marking Rules
+- `@pytest.mark.unit`: Unit tests
+- `@pytest.mark.integration`: Integration tests
+- `@pytest.mark.slow`: Slow tests
+- `@pytest.mark.parametrize`: Parameterized tests
+
+---
+
+## 📖 Example Code
+
+### Basic Test Class Structure
+
+```python
+"""
+DataProcessor 테스트 모듈
+
+이 모듈은 DataProcessor 클래스의 모든 기능을 검증하는 단위 테스트를 제공합니다.
+데이터 처리, 변환, 유효성 검증 등의 기능을 포괄적으로 테스트합니다.
+"""
+
+import pytest
+from unittest.mock import Mock, patch, MagicMock
+from src.data_processor import DataProcessor
+from src.exceptions import DataProcessingError
+
+
+class TestDataProcessor:
+    """
+    DataProcessor 클래스에 대한 테스트 모음
+    
+    데이터 처리기의 초기화, 데이터 변환, 유효성 검증 등의
+    모든 기능을 체계적으로 테스트합니다.
+    """
+    
+    @pytest.fixture
+    def mock_data_source(self):
+        """
+        테스트용 데이터 소스 Mock을 제공하는 fixture
+        
+        Returns:
+            Mock: 테스트용 데이터 소스 Mock 객체
+        """
+        mock_source = Mock()
+        mock_source.get_data.return_value = {
+            "id": 1,
+            "name": "test_data",
+            "value": 100
+        }
+        return mock_source
+    
+    @pytest.fixture
+    def data_processor(self, mock_data_source):
+        """
+        테스트용 DataProcessor 인스턴스를 제공하는 fixture
+        
+        Args:
+            mock_data_source: Mock 데이터 소스
+            
+        Returns:
+            DataProcessor: 테스트용 데이터 처리기 인스턴스
+        """
+        return DataProcessor(data_source=mock_data_source)
+    
+    @pytest.fixture
+    def sample_valid_data(self):
+        """
+        유효한 테스트 데이터를 제공하는 fixture
+        
+        Returns:
+            dict: 유효한 테스트 데이터
+        """
+        return {
+            "id": 1,
+            "name": "valid_data",
+            "value": 200,
+            "timestamp": "2024-01-01T00:00:00Z"
+        }
+    
+    @pytest.fixture
+    def sample_invalid_data(self):
+        """
+        유효하지 않은 테스트 데이터를 제공하는 fixture
+        
+        Returns:
+            dict: 유효하지 않은 테스트 데이터
+        """
+        return {
+            "id": None,  # 필수 필드가 None
+            "name": "",  # 빈 문자열
+            "value": -1  # 유효하지 않은 값
+        }
+    
+    @pytest.mark.unit
+    def test_data_processor_initialization(self, data_processor):
+        """
+        DataProcessor 초기화 테스트
+        
+        Args:
+            data_processor: DataProcessor 인스턴스
+        """
+        # 검증
+        assert isinstance(data_processor, DataProcessor)
+        assert data_processor.data_source is not None
+        assert hasattr(data_processor, 'process')
+        assert hasattr(data_processor, 'validate')
+    
+    @pytest.mark.unit
+    def test_process_valid_data_success(self, data_processor, sample_valid_data):
+        """
+        유효한 데이터 처리 성공 테스트
+        
+        Args:
+            data_processor: DataProcessor 인스턴스
+            sample_valid_data: 유효한 테스트 데이터
+        """
+        # 테스트 실행
+        result = data_processor.process(sample_valid_data)
+        
+        # 검증
+        assert result is not None
+        assert result["status"] == "success"
+        assert result["processed_data"]["id"] == sample_valid_data["id"]
+        assert result["processed_data"]["name"] == sample_valid_data["name"]
+        assert result["processed_data"]["value"] == sample_valid_data["value"]
+    
+    @pytest.mark.unit
+    def test_process_invalid_data_raises_exception(self, data_processor, sample_invalid_data):
+        """
+        유효하지 않은 데이터 처리 시 예외 발생 테스트
+        
+        Args:
+            data_processor: DataProcessor 인스턴스
+            sample_invalid_data: 유효하지 않은 테스트 데이터
+        """
+        # 테스트 실행 및 검증
+        with pytest.raises(DataProcessingError) as exc_info:
+            data_processor.process(sample_invalid_data)
+        
+        assert "Invalid data format" in str(exc_info.value)
+        assert exc_info.value.error_code == "INVALID_FORMAT"
+    
+    @pytest.mark.unit
+    @patch('src.data_processor.external_api_call')
+    def test_process_with_external_api_success(self, mock_api_call, data_processor, sample_valid_data):
+        """
+        외부 API 호출이 포함된 데이터 처리 성공 테스트
+        
+        Args:
+            mock_api_call: 외부 API 호출 Mock
+            data_processor: DataProcessor 인스턴스
+            sample_valid_data: 유효한 테스트 데이터
+        """
+        # Mock 설정
+        mock_api_call.return_value = {
+            "status": "success",
+            "enriched_data": {"additional_info": "test_info"}
+        }
+        
+        # 테스트 실행
+        result = data_processor.process(sample_valid_data, enrich=True)
+        
+        # 검증
+        assert result["status"] == "success"
+        assert "enriched_data" in result
+        assert result["enriched_data"]["additional_info"] == "test_info"
+        
+        # Mock 호출 검증
+        mock_api_call.assert_called_once_with(sample_valid_data)
+    
+    @pytest.mark.unit
+    @patch('src.data_processor.external_api_call')
+    def test_process_with_external_api_failure(self, mock_api_call, data_processor, sample_valid_data):
+        """
+        외부 API 호출 실패 시 처리 테스트
+        
+        Args:
+            mock_api_call: 외부 API 호출 Mock
+            data_processor: DataProcessor 인스턴스
+            sample_valid_data: 유효한 테스트 데이터
+        """
+        # Mock 설정 - API 호출 실패
+        mock_api_call.side_effect = ConnectionError("API connection failed")
+        
+        # 테스트 실행
+        result = data_processor.process(sample_valid_data, enrich=True)
+        
+        # 검증 - 실패해도 기본 처리는 수행됨
+        assert result["status"] == "partial_success"
+        assert "error" in result
+        assert "API connection failed" in result["error"]
+    
+    @pytest.mark.unit
+    @pytest.mark.parametrize("test_data,expected_valid", [
+        ({"id": 1, "name": "test", "value": 100}, True),
+        ({"id": 2, "name": "another", "value": 0}, True),
+        ({"id": None, "name": "test", "value": 100}, False),
+        ({"id": 1, "name": "", "value": 100}, False),
+        ({"id": 1, "name": "test", "value": -1}, False),
+        ({}, False),
+    ])
+    def test_validate_data_with_various_inputs(self, data_processor, test_data, expected_valid):
+        """
+        다양한 입력에 대한 데이터 유효성 검증 테스트
+        
+        Args:
+            data_processor: DataProcessor 인스턴스
+            test_data: 테스트할 데이터
+            expected_valid: 기대되는 유효성 결과
+        """
+        # 테스트 실행
+        result = data_processor.validate(test_data)
+        
+        # 검증
+        assert result["is_valid"] == expected_valid
+        
+        if not expected_valid:
+            assert "errors" in result
+            assert len(result["errors"]) > 0
+    
+    @pytest.mark.unit
+    def test_data_source_integration(self, data_processor, mock_data_source):
+        """
+        데이터 소스 통합 테스트
+        
+        Args:
+            data_processor: DataProcessor 인스턴스
+            mock_data_source: Mock 데이터 소스
+        """
+        # 테스트 실행
+        data = data_processor.get_source_data()
+        
+        # 검증
+        assert data is not None
+        assert data["id"] == 1
+        assert data["name"] == "test_data"
+        assert data["value"] == 100
+        
+        # Mock 호출 검증
+        mock_data_source.get_data.assert_called_once()
+    
+    @pytest.mark.unit
+    def test_batch_processing_success(self, data_processor):
+        """
+        배치 처리 성공 테스트
+        
+        Args:
+            data_processor: DataProcessor 인스턴스
+        """
+        # 테스트 데이터 준비
+        batch_data = [
+            {"id": 1, "name": "item1", "value": 100},
+            {"id": 2, "name": "item2", "value": 200},
+            {"id": 3, "name": "item3", "value": 300}
+        ]
+        
+        # 테스트 실행
+        results = data_processor.process_batch(batch_data)
+        
+        # 검증
+        assert len(results) == 3
+        assert all(result["status"] == "success" for result in results)
+        assert results[0]["processed_data"]["id"] == 1
+        assert results[1]["processed_data"]["id"] == 2
+        assert results[2]["processed_data"]["id"] == 3
+    
+    @pytest.mark.unit
+    def test_batch_processing_with_partial_failures(self, data_processor):
+        """
+        배치 처리 중 일부 실패 시 처리 테스트
+        
+        Args:
+            data_processor: DataProcessor 인스턴스
+        """
+        # 테스트 데이터 준비 - 일부 유효하지 않은 데이터 포함
+        batch_data = [
+            {"id": 1, "name": "item1", "value": 100},      # 유효
+            {"id": None, "name": "item2", "value": 200},   # 유효하지 않음
+            {"id": 3, "name": "item3", "value": 300}       # 유효
+        ]
+        
+        # 테스트 실행
+        results = data_processor.process_batch(batch_data, fail_fast=False)
+        
+        # 검증
+        assert len(results) == 3
+        assert results[0]["status"] == "success"
+        assert results[1]["status"] == "error"
+        assert results[2]["status"] == "success"
+        
+        # 에러 세부사항 확인
+        assert "error" in results[1]
+        assert "Invalid data format" in results[1]["error"]
+
+
+class TestDataProcessorIntegration:
+    """
+    DataProcessor 통합 테스트
+    
+    실제 데이터베이스나 외부 서비스와의 통합을 테스트합니다.
+    """
+    
+    @pytest.mark.integration
+    @pytest.mark.slow
+    def test_end_to_end_processing(self):
+        """
+        종단간 데이터 처리 테스트
+        
+        실제 환경과 유사한 조건에서 전체 처리 과정을 검증합니다.
+        """
+        # 실제 데이터 소스 사용
+        real_data_source = RealDataSource()
+        processor = DataProcessor(data_source=real_data_source)
+        
+        # 실제 데이터 처리
+        raw_data = processor.get_source_data()
+        processed_result = processor.process(raw_data)
+        
+        # 검증
+        assert processed_result["status"] == "success"
+        assert "processed_data" in processed_result
+        assert processed_result["processed_data"]["id"] is not None
+```
+
+### Conftest.py Example
+
+```python
+"""
+전역 pytest 설정 및 공통 fixture 정의
+"""
+
+import pytest
+import os
+from unittest.mock import Mock
+
+
+@pytest.fixture(scope="session")
+def test_config():
+    """
+    테스트 세션 전체에서 사용할 설정을 제공하는 fixture
+    
+    Returns:
+        dict: 테스트 설정 정보
+    """
+    return {
+        "test_db_url": "sqlite:///:memory:",
+        "api_base_url": "https://api.test.com",
+        "timeout": 30,
+        "retry_count": 3
+    }
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_environment():
+    """
+    테스트 환경 자동 설정 fixture
+    
+    모든 테스트 실행 전에 자동으로 실행되어 환경을 설정합니다.
+    """
+    # 테스트 환경변수 설정
+    os.environ["TESTING"] = "true"
+    os.environ["LOG_LEVEL"] = "DEBUG"
+    
+    yield
+    
+    # 정리 작업
+    if "TESTING" in os.environ:
+        del os.environ["TESTING"]
+    if "LOG_LEVEL" in os.environ:
+        del os.environ["LOG_LEVEL"]
+
+
+@pytest.fixture
+def mock_logger():
+    """
+    로깅 Mock 객체를 제공하는 fixture
+    
+    Returns:
+        Mock: 로거 Mock 객체
+    """
+    logger_mock = Mock()
+    logger_mock.info = Mock()
+    logger_mock.error = Mock()
+    logger_mock.warning = Mock()
+    logger_mock.debug = Mock()
+    return logger_mock
+
+
+@pytest.fixture
+def sample_user_data():
+    """
+    사용자 데이터 샘플을 제공하는 fixture
+    
+    Returns:
+        dict: 사용자 데이터
+    """
+    return {
+        "id": 1,
+        "username": "testuser",
+        "email": "test@example.com",
+        "created_at": "2024-01-01T00:00:00Z",
+        "is_active": True,
+        "permissions": ["read", "write"]
+    }
+
+
+# 마킹 정의
+def pytest_configure(config):
+    """pytest 설정 및 커스텀 마킹 정의"""
+    config.addinivalue_line(
+        "markers", "unit: 단위 테스트 마킹"
+    )
+    config.addinivalue_line(
+        "markers", "integration: 통합 테스트 마킹"
+    )
+    config.addinivalue_line(
+        "markers", "slow: 실행 시간이 긴 테스트 마킹"
+    )
+    config.addinivalue_line(
+        "markers", "external: 외부 의존성이 있는 테스트 마킹"
+    )
+```
+
+---
+
+## 🚀 Execution and Verification
+
+### Test Execution Commands
+
+```bash
+# Run all tests
+pytest
+
+# Run unit tests only
+pytest -m unit
+
+# Run integration tests only
+pytest -m integration
+
+# Run specific file tests
+pytest test/unit/test_data_processor.py
+
+# Run specific class tests
+pytest test/unit/test_data_processor.py::TestDataProcessor
+
+# Run specific method tests
+pytest test/unit/test_data_processor.py::TestDataProcessor::test_process_valid_data_success
+
+# Run with coverage
+pytest --cov=src --cov-report=html
+
+# Run in parallel
+pytest -n auto
+```
+
+### Quality Verification Checklist
+
+- [ ] All tests can run independently
+- [ ] AAA pattern compliance
+- [ ] Clear test naming
+- [ ] Appropriate Mock usage
+- [ ] Exception situation testing included
+- [ ] Documentation complete
+- [ ] Coverage above 80%
+- [ ] Stable execution in CI/CD environment

@@ -1,0 +1,395 @@
+---
+description: Ruleset for writing Python documentation
+alwaysApply: false
+---
+**This rule applies only when the user directly instructs the generation of docstrings and comments; otherwise, do not consider this rule**
+**Each rule should be applied appropriately to its target, and common rules should be applied uniformly to all targets**
+
+# Common Rules
+- This documentation work should be written considering that the person reading the document is a veteran developer with 10 years of experience.
+- Each comment and docstring represents the behavior of classes and methods and should be written considering the algorithms, design patterns, and usage purposes applied to those patterns.
+
+# Docstring
+
+## File (module) docstring writing rules
+
+- The file's docstring should clearly describe the module's **purpose, role, overall structure, and main functions**.
+- Explain the overview of major classes, functions, and constants included in the module and their relationships.
+- Describe the **architectural patterns, design patterns, and algorithms** applied by the module.
+- Specify external dependencies (libraries, APIs, systems) and their usage purposes.
+- Include the module's **entry points, main interfaces, and usage examples**.
+- Explain environment variables, configuration requirements, and execution conditions.
+- Include the module's **performance characteristics, scalability, and security considerations**.
+- Provide related documents, specifications, and reference links.
+- File docstrings must start/end with """(triple quotes) and be located at the top of the file.
+
+### Example
+"""
+데이터 처리 및 변환 모듈
+====================
+
+이 모듈은 다양한 형태의 입력 데이터를 통합된 형식으로 변환하는 ETL(Extract, Transform, Load) 파이프라인을 구현합니다.
+팩토리 패턴과 빌더 패턴을 적용하여 유연한 데이터 처리 체인을 구성할 수 있도록 설계되었습니다.
+
+주요 구성 요소:
+    - DataProcessor: 데이터 처리의 주요 조율자
+    - TransformationStrategy: 변환 전략 인터페이스
+    - ValidatorChain: 데이터 검증 체인
+    - OutputFormatter: 결과 포맷터
+
+아키텍처:
+    입력 데이터 → 검증 → 변환 → 포맷팅 → 출력
+    각 단계는 독립적인 처리 전략을 받아 동작합니다.
+
+주요 사용 사례:
+    - JSON 데이터를 CSV로 변환
+    - 로그 데이터 정제 및 표준화
+    - 외부 API 응답 데이터 변환
+
+의존성:
+    - pandas (>= 1.5.0): 데이터 처리
+    - pydantic (>= 1.10.0): 데이터 검증
+    - requests (>= 2.28.0): 외부 API 호출
+
+환경 변수:
+    - DATA_PROCESSING_TIMEOUT: 처리 시간 제한 (기본값: 300초)
+    - LOG_LEVEL: 로그 레벨 (기본값: INFO)
+
+사용 예시:
+    >>> from data_processor import DataProcessor
+    >>> processor = DataProcessor()
+    >>> result = processor.process(input_data)
+    >>> print(result)
+
+성능 특성:
+    - 대용량 데이터를 위한 청크 기반 처리
+    - 메모리 사용량 최적화를 위한 지연 로딩 적용
+    - 멀티프로세싱 지원 (CPU 집약적 작업용)
+
+보안 고려사항:
+    - 입력 데이터에서 SQL 인젝션 방지
+    - 민감한 정보 마스킹 기능
+    - 로그에서 개인정보 노출 방지
+
+제한사항:
+    - 동시 처리 가능한 최대 데이터 크기: 1GB
+    - 단일 프로세스 내에서만 처리 지원
+
+TODO:
+    - 분산 처리 지원 (Celery, Redis)
+    - 실시간 스트리밍 데이터 처리
+    - 향상된 오류 복구 메커니즘
+
+참고 문서:
+    - https://martinfowler.com/articles/data-pipeline.html
+    - 내부 설계 문서: docs/architecture.md
+
+작성자: 개발팀
+최종 수정일: 2024-01-15
+버전: 1.2.0
+"""
+
+## Class docstring writing rules
+
+- The class docstring should clearly describe the class's **role, responsibilities, design intent, applied design patterns, and main operating principles**.
+- When a class utilizes object-oriented patterns such as inheritance, mixins, or composition, the structure and intent must be explained.
+- Summarize the class's lifecycle (creation, destruction, state changes) and main interfaces with external systems (methods, attributes, callbacks).
+- Also include the main data handled by the class, state, exception handling strategies, performance/scalability considerations, and security precautions.
+- Include example code, usage scenarios, limitations and precautions, and related specifications (references) as needed.
+- Class docstrings must start/end with """(triple quotes), with the first line being a concise summary followed by detailed explanation.
+- May include a brief list or summary of the class's public/protected methods and attributes.
+
+### Example
+"""
+ExampleProcessor
+----------------
+입력 데이터를 정제하고 처리하는 프로세서 클래스입니다.
+
+이 클래스는 전략 패턴(Strategy pattern)을 적용하여 다양한 데이터 정제 전략을 유연하게 교체할 수 있도록 설계되었습니다.
+주요 책임은 입력 데이터 검증, 정제 로직 실행, 예외 처리, 결과 반환입니다.
+상속 구조를 통해 공통 인터페이스를 제공하며, 각 전략별로 세부 구현을 분리합니다.
+
+- 생성 시점에 정제 전략(RefinerStrategy)을 받아 동작합니다 (의존성 주입, 합성).
+- process() 메소드를 통해 데이터 정제의 전체 흐름을 관리합니다.
+- 입력 데이터의 타입, 형식, 보안 검증을 수행합니다.
+- 예외 발생 시 로깅과 표준화된 오류 응답을 제공합니다.
+- 확장성과 테스트 용이성을 고려하여 설계되었습니다.
+
+주요 메소드:
+    - process(payload, options): 데이터 정제의 메인 진입점
+    - _validate_input(payload): 입력 데이터 검증
+    - _handle_error(error): 예외 처리 및 로깅
+
+사용 예시:
+    >>> processor = ExampleProcessor(strategy=JsonRefiner())
+    >>> result = processor.process(payload)
+    >>> print(result)
+
+제한사항 및 주의사항:
+    - 입력 데이터 스키마가 변경되면 각 RefinerStrategy 구현체도 함께 수정되어야 함
+    - 외부 의존성(예: LLM API) 실패 시 예외가 발생할 수 있음
+
+참고 문서:
+    - https://refactoring.guru/design-patterns/strategy/python/example
+    - 내부적으로 스레드 안전하지 않으므로 멀티스레드 환경에서는 별도 인스턴스 사용
+
+"""
+
+## Method/Function docstring writing rules
+
+- The method docstring should clearly describe the method's **functionality, operating principles, usage purpose, and applied algorithms**.
+- Explain the **business logic, design patterns, and processing strategies** implemented by the method.
+- Describe parameters' **types, meanings, constraints, default values, and optional nature** in detail.
+- Explain return values' **types, structure, meaning, and possible value ranges**.
+- Specify **types of possible exceptions, occurrence conditions, and handling methods**.
+- Describe the method's **side effects, state changes, and external calls**.
+- Include the method's **performance characteristics, time complexity, and space complexity**.
+- Include **usage examples, test cases, and edge case** handling.
+- Method docstrings must start/end with """(triple quotes) and be located immediately below the method definition.
+
+### Example
+```python
+def process_data(self, payload: dict, options: dict = None, timeout: int = 30) -> dict:
+    """
+    지정된 전략에 따라 입력 데이터를 정제하고 변환하는 메인 처리 메소드입니다.
+
+    이 메소드는 전략 패턴(Strategy pattern)을 사용하여 다양한 데이터 정제 전략을 동적으로 적용합니다.
+    템플릿 메소드 패턴(Template Method pattern)을 적용하여 데이터 처리의 전체 흐름을 표준화하고,
+    각 단계별로 세부 구현을 분리합니다.
+
+    Args:
+        payload (dict): 처리할 입력 데이터
+            - 필수 키: 'data', 'format', 'source'
+            - 선택 키: 'metadata', 'options'
+            - 크기 제한: 최대 10MB
+        options (dict, optional): 처리 옵션
+            - 'validation_level': 검증 강도 ('strict', 'normal', 'lenient')
+            - 'output_format': 출력 형식 ('json', 'xml', 'csv')
+            - 'preserve_metadata': 메타데이터 보존 여부 (bool)
+            - 기본값: {'validation_level': 'normal', 'output_format': 'json'}
+        timeout (int, optional): 처리 시간 제한 (초)
+            - 범위: 1 ~ 300초
+            - 기본값: 30초
+
+    Returns:
+        dict: 처리 결과 딕셔너리
+            - 'success': 처리 성공 여부 (bool)
+            - 'data': 처리된 데이터 (dict/list)
+            - 'metadata': 처리 메타데이터
+                - 'processing_time': 처리 시간 (float)
+                - 'records_processed': 처리된 레코드 수 (int)
+                - 'strategy_used': 사용된 전략명 (str)
+            - 'errors': 오류 정보 (list, 오류 발생 시에만)
+
+    Raises:
+        ValueError: 입력 데이터가 유효하지 않을 때
+            - 필수 키 누락
+            - 데이터 타입 불일치
+            - 크기 제한 초과
+        TimeoutError: 지정된 시간 내에 처리가 완료되지 않을 때
+        RuntimeError: 처리 중 복구 불가능한 오류 발생 시
+            - 외부 서비스 장애
+            - 메모리 부족
+            - 전략 실행 실패
+
+    Side Effects:
+        - 시스템 로그에 처리 로그 기록
+        - 모니터링 시스템에 메트릭 정보 전송
+        - 캐시 시스템에 결과 저장 (성공 시)
+
+    Example [**표준 출력, 혹은 기타 출력이 발생하여 확인이 필요한 경우에만 적용**]:
+        >>> processor = DataProcessor(JsonRefiner())
+        >>> payload = {
+        ...     'data': {'records': [...]},
+        ...     'format': 'json',
+        ...     'source': 'api'
+        ... }
+        >>> options = {'validation_level': 'strict'}
+        >>> result = processor.process_data(payload, options)
+        >>> print(result['success'])
+        True
+        >>> print(len(result['data']))
+        100
+
+    Edge Cases:
+        - 빈 데이터 입력: 빈 결과 반환
+        - 부분 손상된 데이터: 유효한 부분만 처리, 경고 로그 생성
+        - 네트워크 불안정: 재시도 로직 적용 (최대 3회)
+
+    See Also:
+        - _validate_input(): 입력 데이터 검증
+        - _apply_strategy(): 전략 적용
+        - _handle_errors(): 오류 처리
+
+    Notes:
+        - 이 메소드는 스레드 안전하지 않음
+        - 멀티스레드 환경에서는 별도 인스턴스 사용
+        - 외부 API 호출에 대한 속도 제한 적용
+    """
+```
+
+# Comment Writing Rules
+
+## Inline Comments
+
+- Short explanatory comments written at the end of code lines
+- Concisely explain the **purpose, intent, and important values** of the line
+- Explain complex calculations, business logic, and the meaning of magic numbers
+- Comments are written with one space after `#`
+
+```python
+timeout = 30  # API 호출 시간 제한 (초)
+result = data * 0.85  # 15% 할인율 적용
+cache_key = f"user_{user_id}"  # Redis 캐시 키 생성
+```
+
+## Block Comments
+
+- Detailed explanatory comments written before code blocks
+- Explain the **overall behavior, algorithms, and design intent** of the block
+- Include complex logic, important business rules, and performance considerations
+- Comments are written with one space after `#` and span multiple lines
+
+```python
+# 사용자 권한 검증 로직
+# 1. 기본 권한 확인 (로그인 상태, 계정 상태)
+# 2. 역할 기반 권한 확인 (RBAC 적용)
+# 3. 리소스별 세부 권한 확인
+# 4. 시간 기반 권한 확인 (영업시간 제한)
+if not self._validate_user_permissions(user, resource):
+    raise UnauthorizedError("Access denied")
+```
+
+## Section Comments
+
+- Comments that divide code into logical sections
+- Distinguish **major steps and processing units** within classes or functions
+- Serve to structure long methods for easy reading
+- Comments are written in the format `# === Section Name ===`
+
+```python
+# === 입력 데이터 검증 ===
+if not payload or not isinstance(payload, dict):
+    raise ValueError("Invalid input data")
+
+# === 데이터 전처리 ===
+normalized_data = self._normalize_input(payload)
+cleaned_data = self._clean_data(normalized_data)
+
+# === 핵심 비즈니스 로직 ===
+result = self._apply_business_rules(cleaned_data)
+validated_result = self._validate_result(result)
+
+# === 결과 후처리 및 반환 ===
+formatted_result = self._format_output(validated_result)
+return formatted_result
+```
+
+## Explanatory Comments
+
+- Explain the **operating principles and mathematical basis** of complex code or algorithms
+- Explain domain knowledge, business rules, and external system integration logic
+- Provide **context, background, and intent** that are difficult to understand from code alone
+- Written in detail across multiple lines
+
+```python
+# 단순 이동 평균 계산 알고리즘
+# 트렌드 분석을 위해 최근 N일 데이터의 평균을 계산
+# 금융 데이터 분석에서 노이즈 제거 및 패턴 식별에 사용
+# 공식: SMA = (P1 + P2 + ... + Pn) / n
+# 여기서 P는 각 기간의 가격, n은 기간 수
+moving_avg = sum(prices[-window:]) / window
+```
+
+## Warning Comments
+
+- Warn about code **risks, constraints, and side effects**
+- Explain precautions when modifying, dependencies, and performance impacts
+- Use keywords like `# WARNING:`, `# CAUTION:`, `# IMPORTANT:`
+- Provide clear guidelines to prevent mistakes by other developers
+
+```python
+# WARNING: 이 메소드는 데이터베이스 트랜잭션을 커밋합니다
+# 호출 전에 반드시 데이터 유효성을 확인하세요
+# 실패 시 롤백이 불가능하므로 신중히 사용하세요
+def commit_transaction(self):
+    self.db.commit()
+
+# CAUTION: 캐시 무효화로 인한 성능 저하 가능
+# 피크 시간대에는 사용을 피하세요
+cache.clear_all()
+```
+
+## TODO Comments
+
+- Record future improvements, incomplete features, and refactoring plans
+- Use keywords like `# TODO:`, `# FIXME:`, `# HACK:`
+- Include assignee, priority, and estimated schedule
+- Integrate with issue trackers or work management systems
+
+```python
+# TODO: 비동기 처리 지원 추가 - 김개발자 (2024-02-15)
+# 대용량 데이터 처리 시 블로킹 문제를 해결해야 함
+# 우선순위: 높음, 예상 시간: 3일
+def process_large_data(self, data):
+    pass
+
+# FIXME: 메모리 누수 가능성
+# 파일 핸들이 제대로 닫히지 않을 때 발생
+# 컨텍스트 매니저로 리팩토링 필요
+file_handler = open(filename, 'r')
+```
+
+## Debug Comments
+
+- Mark **debugging information, test code, and temporary logic** during development
+- Remove or conditionally activate in production environment
+- Use keywords like `# DEBUG:`, `# TEST:`, `# TEMP:`
+- Must be cleaned up before production deployment
+
+```python
+# DEBUG: 성능 측정을 위한 임시 코드
+# 프로덕션 배포 전에 제거 필요
+import time
+start_time = time.time()
+result = expensive_operation()
+# print(f"실행 시간: {time.time() - start_time:.2f} 초")  # DEBUG
+
+# TEST: 다양한 입력 값에 대한 테스트 케이스
+# test_cases = [
+#     {"input": {...}, "expected": {...}},
+#     {"input": {...}, "expected": {...}},
+# ]
+```
+
+## Reference Comments
+
+- Reference external documents, specifications, and algorithm sources
+- Provide **theoretical background, standard specifications, and reference materials** for code
+- Link URLs, papers, books, and internal documents
+- Provide additional information helpful for code understanding and maintenance
+
+```python
+# 참조: RFC 3986 - 범용 리소스 식별자(URI) 구문 규칙
+# https://tools.ietf.org/html/rfc3986
+# URI 파싱 로직은 위 명세를 준수합니다
+def parse_uri(uri_string):
+    pass
+
+# 알고리즘 출처: "Introduction to Algorithms" by Cormen et al.
+# 15장: 동적 프로그래밍
+# 최적 부분 구조와 중복 부분 문제를 해결하기 위한 동적 프로그래밍 적용
+def longest_common_subsequence(str1, str2):
+    pass
+```
+
+## Common Considerations for Comment Writing
+
+1. **Clarity**: Write clearly so that people unfamiliar with the code can understand
+2. **Conciseness**: Include only necessary information and write concisely
+3. **Consistency**: Maintain consistent style and format throughout the project
+4. **Currency**: Update related comments when code changes
+5. **Readability**: Write to improve code readability
+6. **Avoid Duplication**: Avoid unnecessary comments for parts that are clear from code alone
+7. **Korean Usage**: Use Korean for team communication unless otherwise specified
+8. **Standardization**: Standardize keywords, formats, and structures for consistency
