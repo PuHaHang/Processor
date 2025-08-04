@@ -126,7 +126,7 @@ class OpenAIRefiner(RefinerStrategy):
             },
             data_type=DataType.TEXT,
             status=PayloadStatus.COMPLETED,
-            processor=self.__class__
+            processor=self
         )
 
         self._logger.info(f"레시피 정제 완료: {payload.data_type.name} → TEXT")

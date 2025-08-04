@@ -32,6 +32,7 @@ class ZeroShotClassifier (Classifier):
         self.session = self._load_session(model_path)
 
     def evaluate(self, sequence: str|dict[str, Any]) -> bool:
+        print(f"Sequence: {sequence}")
         # 빈 입력 검사
         if not sequence:
             raise ValueError("Sequence is empty")
@@ -61,8 +62,15 @@ class ZeroShotClassifier (Classifier):
             # 단일 문자열인 경우 직접 분류
             pred_dict = self._classify(sequence)
         
-        # entailment 점수가 neutral + contradiction 점수보다 높으면 레시피 관련으로 판단
-        return pred_dict["entailment"] > pred_dict["neutral"] + pred_dict["contradiction"]
+        # entailment 점수가 neutral 점수보다 높으면 레시피 관련으로 판단
+        if not (pred_dict["entailment"] > pred_dict["neutral"]):
+            raise ValueError(
+                f"Sequence is not a recipe. Classification scores: "
+                f"entailment={pred_dict['entailment']:.4f}, "
+                f"neutral={pred_dict['neutral']:.4f}, "
+                f"contradiction={pred_dict['contradiction']:.4f}"
+            )
+        return True
 
     def _classify(self, sequence: str) -> dict[str, float]:
         # 레시피 분류를 위한 가설 문장 (한국어)

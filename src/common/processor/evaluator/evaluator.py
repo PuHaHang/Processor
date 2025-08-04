@@ -4,6 +4,7 @@
 이 모듈은 데이터 처리 결과를 평가하는 Evaluator 클래스를 제공합니다.
 """
 
+from src.common.processor.evaluator.strategies.generic_evaluator import GenericEvaluator
 from ..types import Payload
 from .evaluator_strategy import EvaluatorStrategy
 from .strategies import InitEvaluator, YtDlpEvaluator
@@ -25,6 +26,7 @@ class Evaluator:
     strategies: list[EvaluatorStrategy] = [
         InitEvaluator(),
         YtDlpEvaluator(),
+        GenericEvaluator(),
     ]
 
     strategy_map: dict[type, list[EvaluatorStrategy]] = {}

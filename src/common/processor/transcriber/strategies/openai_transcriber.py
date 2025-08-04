@@ -111,7 +111,7 @@ class OpenAITranscriber(TranscriberStrategy):
             },
             data_type=self.data_flow[1],
             status=PayloadStatus.COMPLETED,
-            processor=type(self)
+            processor=self
         )
 
     

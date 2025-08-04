@@ -28,7 +28,7 @@ class Payload (BaseModel):
     metadata: dict
     data_type: DataType
     status: PayloadStatus
-    processor: Optional[type] = None
+    processor: Optional[object] = None
 
 
     def get_buffer(self) -> bytes:
@@ -70,16 +70,16 @@ class Payload (BaseModel):
         """
         return self.status
     
-    def get_processor(self) -> type | None:
+    def get_processor(self) -> object | None:
         """
         프로세서 타입을 반환합니다.
         
         Returns:
-            type[Processor]: 프로세서 타입
+            object: 프로세서 인스턴스
         """
         return self.processor
     
-    def is_processed_by(self, processor: type) -> bool:
+    def is_processed_by(self, processor: object) -> bool:
         """
         현재 프로세서가 처리한 데이터인지 확인합니다.
         

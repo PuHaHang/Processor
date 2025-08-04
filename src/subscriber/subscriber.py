@@ -30,7 +30,7 @@ def process_message(message):
     # 메시지 처리 로직
     try:
         logfire.debug('SQS 메시지 처리 시작 {message}', message=message)
-        json_data = json.loads(message['Body'])
+        json_data = message['Body']
 
         recipe_base_content_id = json_data['recipeBaseContentId']
         platform = json_data['platform']
@@ -131,13 +131,14 @@ def payload_saver(payload: Payload, recipe_base_content_id: int):
         recipe_base_service.update_recipe_base_state(session, recipe_base_content_id, RecipeState.COMPLETED)
 
         recipe_base = recipe_base_service.get_recipe_base_by_id(session, recipe_base_content.recipe_base_id)
-        recipe_base.reference = {
-            **recipe_base.reference,
-            "metadata": {
-                **recipe_base.reference["metadata"],
-                "is_shorts": payload.metadata["reference"]["metadata"]["is_shorts"]
+        if (is_shorts := payload.metadata.get("reference", {}).get("metadata", {}).get("is_shorts")) is not None:
+            recipe_base.reference = {
+                **recipe_base.reference,
+                "metadata": {
+                    **recipe_base.reference["metadata"],
+                    "is_shorts": is_shorts
+                }
             }
-        }
         
         logfire.debug('payload_saver 참조 정보 {recipe_base.reference}', recipe_base=recipe_base)
         logfire.debug('payload data', data=data)
@@ -238,10 +239,16 @@ def poll_messages():
                     QueueUrl=queue_url,
                     ReceiptHandle=message['ReceiptHandle']
                 )
+
+                message['Body'] = json.loads(message.get('Body', {}))
+                if (depth := int(message['Body'].get('depth', int(os.getenv("AWS_SQS_MAX_DEPTH", 10))))) > int(os.getenv("AWS_SQS_MAX_DEPTH", 10)):
+                    continue
+                
+                message['Body']['depth'] = depth + 1
                 target_messages.append(message)
             except Exception as e:
                 logfire.error('SQS 메시지 삭제 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
-                continue
+                raise e
 
         for message in target_messages:
             try:
@@ -251,7 +258,7 @@ def poll_messages():
                 logfire.error('SQS 메시지 처리 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
                 sqs.send_message(
                     QueueUrl=queue_url,
-                    MessageBody=message['Body'],
+                    MessageBody=json.dumps(message['Body']),
                     DelaySeconds=0
                 )
                 continue

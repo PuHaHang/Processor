@@ -24,7 +24,11 @@ class YtDlpEvaluator (EvaluatorStrategy):
 
     def is_supported(self, payload: Payload) -> bool:
         # 페이로드가 YtDlpDownloader로 처리된 경우에만 지원
-        return payload.get_processor() in self.available_processors
+        print(f"payload.get_processor(): {payload.get_processor()}")
+        print(f"type(payload.get_processor()): {type(payload.get_processor())}")
+        print(f"self.available_processors: {self.available_processors}")
+        print(f"type(payload.get_processor()) in self.available_processors: {type(payload.get_processor()) in self.available_processors}")
+        return type(payload.get_processor()) in self.available_processors
 
     def evaluate(self, payload: Payload) -> bool:
         # 페이로드에 메타데이터가 있는지 확인
