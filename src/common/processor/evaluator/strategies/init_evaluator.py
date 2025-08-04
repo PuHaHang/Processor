@@ -12,4 +12,4 @@ class InitEvaluator(EvaluatorStrategy):
         return super()._evaluate(str(payload.__str__))
     
     def is_supported(self, payload: Payload) -> bool:
-        return payload.get_processor() in self.available_processors
+        return type(payload.get_processor()) in self.available_processors
