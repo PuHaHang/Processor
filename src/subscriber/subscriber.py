@@ -240,14 +240,14 @@ def poll_messages():
                     ReceiptHandle=message['ReceiptHandle']
                 )
 
-                if (depth := int(message['depth'])) > int(os.getenv("AWS_SQS_MAX_DEPTH", 10)):
+                if (depth := int(json.loads(message.get('Body', {})).get('depth', int(os.getenv("AWS_SQS_MAX_DEPTH", 10))))) > int(os.getenv("AWS_SQS_MAX_DEPTH", 10)):
                     continue
                 
                 message['depth'] = str(depth + 1)
                 target_messages.append(message)
             except Exception as e:
                 logfire.error('SQS 메시지 삭제 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
-                continue
+                raise e
 
         for message in target_messages:
             try:
