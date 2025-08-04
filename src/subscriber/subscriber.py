@@ -30,7 +30,7 @@ def process_message(message):
     # 메시지 처리 로직
     try:
         logfire.debug('SQS 메시지 처리 시작 {message}', message=message)
-        json_data = json.loads(message['Body'])
+        json_data = message['Body']
 
         recipe_base_content_id = json_data['recipeBaseContentId']
         platform = json_data['platform']
@@ -240,10 +240,11 @@ def poll_messages():
                     ReceiptHandle=message['ReceiptHandle']
                 )
 
-                if (depth := int(json.loads(message.get('Body', {})).get('depth', int(os.getenv("AWS_SQS_MAX_DEPTH", 10))))) > int(os.getenv("AWS_SQS_MAX_DEPTH", 10)):
+                message['Body'] = json.loads(message.get('Body', {}))
+                if (depth := int(message['Body'].get('depth', int(os.getenv("AWS_SQS_MAX_DEPTH", 10))))) > int(os.getenv("AWS_SQS_MAX_DEPTH", 10)):
                     continue
                 
-                message['depth'] = str(depth + 1)
+                message['Body']['depth'] = depth + 1
                 target_messages.append(message)
             except Exception as e:
                 logfire.error('SQS 메시지 삭제 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
@@ -257,7 +258,7 @@ def poll_messages():
                 logfire.error('SQS 메시지 처리 중 오류 발생 {error}, message: {message}', error=str(e), message=message)
                 sqs.send_message(
                     QueueUrl=queue_url,
-                    MessageBody=message['Body'],
+                    MessageBody=json.dumps(message['Body']),
                     DelaySeconds=0
                 )
                 continue
