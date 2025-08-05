@@ -27,4 +27,4 @@ ENV PYTHONPATH="${PYTHONPATH}:/app/src"
 EXPOSE ${SERVER_PORT}
 
 # 애플리케이션 실행
-CMD ["python", "server.py"] 
+CMD ["python", "main.py"] 
