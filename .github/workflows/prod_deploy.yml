@@ -88,10 +88,10 @@ jobs:
           mkdir -p src/resources/models
           aws s3 sync s3://${{ secrets.AWS_S3_BUCKET_NAME }}/models/ src/resources/models/ --region $AWS_REGION --exclude "*" --include "*.onnx"
 
-      - name: Set FCM Service Account Key
+      - name: Download FCM Service Account Key
         run: |
           mkdir -p src/resources/keys
-          printf "%s" "${{ secrets.FCM_SERVICE_ACCOUNT_KEY }}" > src/resources/keys/recipe-it-fcm-admin.json
+          aws s3 cp s3://${{ secrets.AWS_S3_BUCKET_NAME }}/${{ vars.FCM_KEY_S3_PATH}} src/resources/keys/recipe-it-fcm-admin.json --region $AWS_REGION
 
       - name: Install dependencies
         run: |
