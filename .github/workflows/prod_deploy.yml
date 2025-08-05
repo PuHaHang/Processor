@@ -47,6 +47,21 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+
+      - name: Create and use ARM64 builder
+        run: |
+          docker buildx create --name arm64-builder --driver docker-container --use
+          docker buildx inspect --bootstrap
+
       - name: Install ffmpeg
         run: |
           sudo apt-get update
