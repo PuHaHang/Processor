@@ -176,6 +176,11 @@ jobs:
             --arg MODEL_PATH "${{ vars.MODEL_PATH }}" \
             --arg ZEROSHOT_MODEL_NAME "${{ vars.ZEROSHOT_MODEL_NAME }}" \
             --arg AWS_SQS_MAX_DEPTH "${{ vars.AWS_SQS_MAX_DEPTH }}" \
+            --arg FCM_KEY_S3_PATH "${{ vars.FCM_KEY_S3_PATH }}" \
+            --arg AWS_S3_BUCKET_NAME "${{ secrets.AWS_S3_BUCKET_NAME }}" \
+            --arg IMAGE_PATH "${{ vars.IMAGE_PATH }}" \
+            --arg AMPLITUDE_API_KEY "${{ secrets.AMPLITUDE_API_KEY }}" \
+            --arg LOGFIRE_TOKEN "${{ secrets.LOGFIRE_TOKEN }}" \
             '.containerDefinitions[0].image = $IMAGE |
              .containerDefinitions[0].environment = [
                {"name": "SERVER_PORT", "value": $SERVER_PORT},
@@ -199,7 +204,12 @@ jobs:
                {"name": "AWS_SQS_QUEUE_URL", "value": $AWS_SQS_QUEUE_URL},
                {"name": "MODEL_PATH", "value": $MODEL_PATH},
                {"name": "ZEROSHOT_MODEL_NAME", "value": $ZEROSHOT_MODEL_NAME},
-               {"name": "AWS_SQS_MAX_DEPTH", "value": $AWS_SQS_MAX_DEPTH}
+               {"name": "AWS_SQS_MAX_DEPTH", "value": $AWS_SQS_MAX_DEPTH},
+               {"name": "FCM_KEY_S3_PATH", "value": $FCM_KEY_S3_PATH},
+               {"name": "AWS_S3_BUCKET_NAME", "value": $AWS_S3_BUCKET_NAME},
+               {"name": "IMAGE_PATH", "value": $IMAGE_PATH},
+               {"name": "AMPLITUDE_API_KEY", "value": $AMPLITUDE_API_KEY},
+               {"name": "LOGFIRE_TOKEN", "value": $LOGFIRE_TOKEN}
              ] |
              del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
             task-def.json > new-task-def.json
