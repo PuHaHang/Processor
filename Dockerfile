@@ -27,8 +27,8 @@ ENV PYTHONPATH="${PYTHONPATH}:/app/src"
 # 포트 설정 (필요에 따라 수정)
 EXPOSE ${SERVER_PORT}
 
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # 애플리케이션 실행
-ENTRYPOINT ["entrypoint.sh"] 
+ENTRYPOINT ["/entrypoint.sh"] 
