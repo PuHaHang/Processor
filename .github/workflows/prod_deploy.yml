@@ -83,20 +83,17 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ vars.DOCKER_IMAGE_NAME }} .
-
-
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Push Docker image to ECR
+      - name: Build and push ARM image to ECR
         run: |
-          docker tag ${{ vars.DOCKER_IMAGE_NAME }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ vars.DOCKER_IMAGE_NAME }}:latest
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ vars.DOCKER_IMAGE_NAME }}:latest
-  
+          docker buildx build \
+            --platform linux/arm64 \
+            -t ${{ steps.login-ecr.outputs.registry }}/${{ vars.DOCKER_IMAGE_NAME }} \
+            --push \
+            .
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
