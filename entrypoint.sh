@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
-curl -I -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" "https://www.youtube.com"
+curl -I -s -c /tmp/cookies.txt -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" "https://www.youtube.com"
+
+yt-dlp --cookies /tmp/cookies.txt "https://youtube.com/shorts/z4K1xfOZ06o?si=9poYTpngskv-fAFt"
 
 exec python main.py
