@@ -179,6 +179,7 @@ jobs:
             --arg FCM_KEY_S3_PATH "${{ vars.FCM_KEY_S3_PATH }}" \
             --arg AWS_S3_BUCKET_NAME "${{ secrets.AWS_S3_BUCKET_NAME }}" \
             --arg IMAGE_PATH "${{ vars.IMAGE_PATH }}" \
+            --arg COOKIES_S3_PATH "${{ vars.COOKIES_S3_PATH }}" \
             --arg AMPLITUDE_API_KEY "${{ secrets.AMPLITUDE_API_KEY }}" \
             --arg LOGFIRE_TOKEN "${{ secrets.LOGFIRE_TOKEN }}" \
             '.containerDefinitions[0].image = $IMAGE |
@@ -208,6 +209,7 @@ jobs:
                {"name": "FCM_KEY_S3_PATH", "value": $FCM_KEY_S3_PATH},
                {"name": "AWS_S3_BUCKET_NAME", "value": $AWS_S3_BUCKET_NAME},
                {"name": "IMAGE_PATH", "value": $IMAGE_PATH},
+               {"name": "COOKIES_S3_PATH", "value": $COOKIES_S3_PATH},
                {"name": "AMPLITUDE_API_KEY", "value": $AMPLITUDE_API_KEY},
                {"name": "LOGFIRE_TOKEN", "value": $LOGFIRE_TOKEN}
              ] |
