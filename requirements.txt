@@ -51,3 +51,4 @@ python-ulid==3.0.0
 amplitude-analytics
 logfire
 boto3
+pillow
