@@ -144,15 +144,16 @@ jobs:
           IMAGE_URI=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.GCP_IMAGE_NAME }}
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
-      - name: Get image digest
-        id: push-digest
+      # - name: Get image digest
+      #   id: push-digest
+      #   run: |
+          # REPO_PATH=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}
+          # DIGEST=$(gcloud artifacts docker images list $REPO_PATH \
+          #         --filter="IMAGE~${{ vars.GCP_IMAGE_NAME }}" \
+          #         --format="get(DIGEST)" --limit=1)
+      - name: Set image URI
         run: |
-          REPO_PATH=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}
-          DIGEST=$(gcloud artifacts docker images list $REPO_PATH \
-                  --filter="IMAGE~${{ vars.GCP_IMAGE_NAME }}" \
-                  --format="get(DIGEST)" --limit=1)
-
-          IMAGE_URI="${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.GCP_IMAGE_NAME }}@$DIGEST"
+          IMAGE_URI="${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.GCP_IMAGE_NAME }}:latest"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
       - name: Update job
