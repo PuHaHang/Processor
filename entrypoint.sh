@@ -1,12 +1,16 @@
 #!/bin/bash
 set -e
 
-YT_DLP_PATH=$(which yt-dlp)
-echo "YT_DLP_PATH: $YT_DLP_PATH"
+# YT_DLP_PATH=$(which yt-dlp)
+# echo "YT_DLP_PATH: $YT_DLP_PATH"
 
-curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp
-chmod +x yt-dlp
-mv ./yt-dlp $YT_DLP_PATH
+# curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp
+# chmod +x yt-dlp
+# mv ./yt-dlp $YT_DLP_PATH
+
+pip uninstall yt-dlp
+pip install --upgrade pip
+pip install yt-dlp
 
 # aws s3 cp s3://recipe-it-s3/keys/cookies.txt /tmp/cookies.txt
 
