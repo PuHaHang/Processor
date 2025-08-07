@@ -249,7 +249,7 @@ class YtDlpDownloader (DownloaderStrategy):
             'skip_download': True,   # 다운로드 생략 (중요)
             'no_warnings': True,
             'noplaylist': True,
-            'cookiesfromfilename': self.cookie_file_path,
+            'cookies': self.cookie_file_path,
             'geo_bypass': True,
             'no_check_certificate': True,
             'headers': {
@@ -319,7 +319,7 @@ class YtDlpDownloader (DownloaderStrategy):
             'quiet': True,
             'no_warnings': True,
             'noplaylist': True,
-            'cookiesfromfilename': self.cookie_file_path,
+            'cookies': self.cookie_file_path,
             'geo_bypass': True,
             'no_check_certificate': True,
             'headers': {
@@ -367,7 +367,7 @@ class YtDlpDownloader (DownloaderStrategy):
             'quiet': True,
             'skip_download': True,
             'simulate': True,
-            'cookiesfromfilename': self.cookie_file_path,
+            'cookies': self.cookie_file_path,
             'geo_bypass': True,
             'no_check_certificate': True,
             'headers': {
