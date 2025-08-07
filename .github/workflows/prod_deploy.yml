@@ -149,10 +149,10 @@ jobs:
         run: |
           REPO_PATH=${{ env.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}
           DIGEST=$(gcloud artifacts docker images list $REPO_PATH \
-                  --filter="IMAGE~${{ vars.GCP_IMAGE_NAME }} AND TAGS:latest" \
-                  --format="get(digest)" --limit=1)
+                  --filter="IMAGE~${{ vars.GCP_IMAGE_NAME }}" \
+                  --format="get(DIGEST)" --limit=1)
 
-          IMAGE_URI="${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.DOCKER_IMAGE_NAME }}@$DIGEST"
+          IMAGE_URI="${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.GCP_IMAGE_NAME }}@$DIGEST"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
       - name: Update job
