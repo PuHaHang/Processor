@@ -76,7 +76,7 @@ class YtDlpDownloader (DownloaderStrategy):
         'upload_date': None,
         'fulltitle': None,
     }
-    cookie_file_path: str = "cookies.txt"
+    cookie_file_path: str = "/tmp/cookies.txt"
     
     @ExceptionHandler(
         exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
