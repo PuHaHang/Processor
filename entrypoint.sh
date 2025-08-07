@@ -8,9 +8,9 @@ set -e
 # chmod +x yt-dlp
 # mv ./yt-dlp $YT_DLP_PATH
 
-pip uninstall yt-dlp -y
-pip install --upgrade pip -y
-pip install yt-dlp -y
+pip install --upgrade pip
+pip install -U pip hatchling wheel
+pip install --force-reinstall "yt-dlp[default] @ https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz"
 
 # aws s3 cp s3://recipe-it-s3/keys/cookies.txt /tmp/cookies.txt
 
