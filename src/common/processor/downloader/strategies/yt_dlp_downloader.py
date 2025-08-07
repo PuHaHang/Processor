@@ -76,7 +76,7 @@ class YtDlpDownloader (DownloaderStrategy):
         'upload_date': None,
         'fulltitle': None,
     }
-
+    cookie_file_path: str = "cookies.txt"
     
     @ExceptionHandler(
         exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
@@ -248,7 +248,17 @@ class YtDlpDownloader (DownloaderStrategy):
             'quiet': True,
             'skip_download': True,   # 다운로드 생략 (중요)
             'no_warnings': True,
-            'noplaylist': True
+            'noplaylist': True,
+            'cookiesfromfilename': self.cookie_file_path,
+            'geo_bypass': True,
+            'no_check_certificate': True,
+            'headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.youtube.com/',
+                'Origin': 'https://www.youtube.com',
+            }
         }
         with YoutubeDL(ydl_opts) as ydl:
             # 비디오 정보 추출
@@ -308,7 +318,17 @@ class YtDlpDownloader (DownloaderStrategy):
             'outtmpl': '-',  # output template, 필요 없음 (파이썬 API 사용)
             'quiet': True,
             'no_warnings': True,
-            'noplaylist': True
+            'noplaylist': True,
+            'cookiesfromfilename': self.cookie_file_path,
+            'geo_bypass': True,
+            'no_check_certificate': True,
+            'headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.youtube.com/',
+                'Origin': 'https://www.youtube.com',
+            }
         }
         with YoutubeDL(ydl_opts) as ydl:
             # 비디오 정보 추출하여 실제 스트림 URL 획득
@@ -346,7 +366,17 @@ class YtDlpDownloader (DownloaderStrategy):
         ydl_opts = {
             'quiet': True,
             'skip_download': True,
-            'simulate': True
+            'simulate': True,
+            'cookiesfromfilename': self.cookie_file_path,
+            'geo_bypass': True,
+            'no_check_certificate': True,
+            'headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.youtube.com/',
+                'Origin': 'https://www.youtube.com',
+            }
         }
 
         with YoutubeDL(ydl_opts) as ydl:
