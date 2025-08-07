@@ -9,8 +9,8 @@ set -e
 # mv ./yt-dlp $YT_DLP_PATH
 
 pip uninstall yt-dlp
-pip install --upgrade pip
-pip install yt-dlp
+pip install --upgrade pip -y
+pip install yt-dlp -y
 
 # aws s3 cp s3://recipe-it-s3/keys/cookies.txt /tmp/cookies.txt
 
