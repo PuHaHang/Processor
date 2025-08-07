@@ -8,7 +8,7 @@ set -e
 # chmod +x yt-dlp
 # mv ./yt-dlp $YT_DLP_PATH
 
-pip uninstall yt-dlp
+pip uninstall yt-dlp -y
 pip install --upgrade pip -y
 pip install yt-dlp -y
 
