@@ -110,7 +110,7 @@ jobs:
 
       - name: Build and push ARM image to Artifact Registry
         run: |
-          IMAGE_URI=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.DOCKER_IMAGE_NAME }}
+          IMAGE_URI=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.GCP_IMAGE_NAME }}
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
           docker buildx build \
@@ -141,7 +141,7 @@ jobs:
 
       - name: Build and push ARM image to Artifact Registry
         run: |
-          IMAGE_URI=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.DOCKER_IMAGE_NAME }}
+          IMAGE_URI=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.GCP_IMAGE_NAME }}
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
       - name: Get image digest
