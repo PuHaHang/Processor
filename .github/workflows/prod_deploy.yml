@@ -98,17 +98,27 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+      - name: Authenticate with Google Cloud (using SA JSON)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-      - name: Build and push ARM image to ECR
+      - name: Set GCP project and configure Artifact Registry auth
         run: |
+          gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+          gcloud auth configure-docker ${{ vars.ARTIFACT_HOST }}
+
+      - name: Build and push ARM image to Artifact Registry
+        run: |
+          IMAGE_URI=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.DOCKER_IMAGE_NAME }}
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
           docker buildx build \
             --platform linux/arm64 \
-            -t ${{ steps.login-ecr.outputs.registry }}/${{ vars.DOCKER_IMAGE_NAME }} \
+            -t $IMAGE_URI \
             --push \
             .
+  
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
@@ -119,107 +129,65 @@ jobs:
     
     steps:
       
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Authenticate with Google Cloud (using SA JSON)
+        uses: google-github-actions/auth@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+      - name: Set GCP project and configure Artifact Registry auth
+        run: |
+          gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+          gcloud auth configure-docker ${{ vars.ARTIFACT_HOST }}
+
+      - name: Build and push ARM image to Artifact Registry
+        run: |
+          IMAGE_URI=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.DOCKER_IMAGE_NAME }}
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
       - name: Get image digest
         id: push-digest
         run: |
-          DIGEST=$(aws ecr describe-images \
-            --repository-name ${{ vars.DOCKER_IMAGE_NAME }} \
-            --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageDigest' \
-            --output text)
+          DIGEST=$(gcloud artifacts docker images list \
+            --repository=$IMAGE_URI \
+            --format='get(digest)' \
+            --limit=1)
 
-          IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ vars.DOCKER_IMAGE_NAME }}@$DIGEST"
-          echo "::set-output name=image_uri::$IMAGE_URI"
-          echo "Pushed image digest: $IMAGE_URI"
+          IMAGE_URI="${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}/${{ vars.DOCKER_IMAGE_NAME }}@$DIGEST"
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
-      - name: Fetch current task definition
+      - name: Update job
         run: |
-          aws ecs describe-task-definition \
-            --task-definition ${{ vars.AWS_TASK_NAME }} \
-            --query 'taskDefinition' > task-def.json
-
-      - name: Update ECS task definition with new image and environment variables
-        id: update-task-def
-        run: |
-          IMAGE_URI="${{ steps.push-digest.outputs.image_uri }}"
-
-          jq --arg IMAGE "$IMAGE_URI" \
-            --arg SERVER_PORT "${{ vars.SERVER_PORT }}" \
-            --arg POSTGRES_HOST "${{ secrets.POSTGRES_HOST }}" \
-            --arg POSTGRES_PORT "${{ secrets.POSTGRES_PORT }}" \
-            --arg POSTGRES_DB "${{ secrets.POSTGRES_DB }}" \
-            --arg AWS_RDS_SECRETS_MANAGER "${{ secrets.AWS_RDS_SECRETS_MANAGER }}" \
-            --arg AWS_RDS_SECRET_NAME "${{ secrets.AWS_RDS_SECRET_NAME }}" \
-            --arg AWS_REGION "${{ vars.AWS_REGION }}" \
-            --arg AWS_ACCOUNT_ID "${{ secrets.AWS_ACCOUNT_ID }}" \
-            --arg AWS_ACCESS_KEY_ID "${{ secrets.AWS_ACCESS_KEY_ID }}" \
-            --arg AWS_SECRET_ACCESS_KEY "${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-            --arg AWS_S3_BUCKET_NAME "${{ secrets.AWS_S3_BUCKET_NAME }}" \
-            --arg DOCKER_IMAGE_NAME "${{ vars.DOCKER_IMAGE_NAME }}" \
-            --arg OPENAI_API_KEY "${{ secrets.OPENAI_API_KEY }}" \
-            --arg GEMINI_API_KEY "${{ secrets.GEMINI_API_KEY }}" \
-            --arg AWS_SQS_POLL_COUNT "${{ vars.AWS_SQS_POLL_COUNT }}" \
-            --arg AWS_SQS_MAX_NUMBER_OF_MESSAGES "${{ vars.AWS_SQS_MAX_NUMBER_OF_MESSAGES }}" \
-            --arg AWS_SQS_WAIT_TIME_SECONDS "${{ vars.AWS_SQS_WAIT_TIME_SECONDS }}" \
-            --arg AWS_SQS_VISIBILITY_TIMEOUT "${{ vars.AWS_SQS_VISIBILITY_TIMEOUT }}" \
-            --arg AWS_SQS_QUEUE_URL "${{ secrets.AWS_SQS_QUEUE_URL }}" \
-            --arg MODEL_PATH "${{ vars.MODEL_PATH }}" \
-            --arg ZEROSHOT_MODEL_NAME "${{ vars.ZEROSHOT_MODEL_NAME }}" \
-            --arg AWS_SQS_MAX_DEPTH "${{ vars.AWS_SQS_MAX_DEPTH }}" \
-            --arg FCM_KEY_S3_PATH "${{ vars.FCM_KEY_S3_PATH }}" \
-            --arg AWS_S3_BUCKET_NAME "${{ secrets.AWS_S3_BUCKET_NAME }}" \
-            --arg IMAGE_PATH "${{ vars.IMAGE_PATH }}" \
-            --arg COOKIES_S3_PATH "${{ vars.COOKIES_S3_PATH }}" \
-            --arg AMPLITUDE_API_KEY "${{ secrets.AMPLITUDE_API_KEY }}" \
-            --arg LOGFIRE_TOKEN "${{ secrets.LOGFIRE_TOKEN }}" \
-            '.containerDefinitions[0].image = $IMAGE |
-             .containerDefinitions[0].environment = [
-               {"name": "SERVER_PORT", "value": $SERVER_PORT},
-               {"name": "POSTGRES_HOST", "value": $POSTGRES_HOST},
-               {"name": "POSTGRES_PORT", "value": $POSTGRES_PORT},
-               {"name": "POSTGRES_DB", "value": $POSTGRES_DB},
-               {"name": "AWS_RDS_SECRETS_MANAGER", "value": $AWS_RDS_SECRETS_MANAGER},
-               {"name": "AWS_RDS_SECRET_NAME", "value": $AWS_RDS_SECRET_NAME},
-               {"name": "AWS_REGION", "value": $AWS_REGION},
-               {"name": "AWS_ACCOUNT_ID", "value": $AWS_ACCOUNT_ID},
-               {"name": "AWS_ACCESS_KEY_ID", "value": $AWS_ACCESS_KEY_ID},
-               {"name": "AWS_SECRET_ACCESS_KEY", "value": $AWS_SECRET_ACCESS_KEY},
-               {"name": "AWS_S3_BUCKET_NAME", "value": $AWS_S3_BUCKET_NAME},
-               {"name": "DOCKER_IMAGE_NAME", "value": $DOCKER_IMAGE_NAME},
-               {"name": "OPENAI_API_KEY", "value": $OPENAI_API_KEY},
-               {"name": "GEMINI_API_KEY", "value": $GEMINI_API_KEY},
-               {"name": "AWS_SQS_POLL_COUNT", "value": $AWS_SQS_POLL_COUNT},
-               {"name": "AWS_SQS_MAX_NUMBER_OF_MESSAGES", "value": $AWS_SQS_MAX_NUMBER_OF_MESSAGES},
-               {"name": "AWS_SQS_WAIT_TIME_SECONDS", "value": $AWS_SQS_WAIT_TIME_SECONDS},
-               {"name": "AWS_SQS_VISIBILITY_TIMEOUT", "value": $AWS_SQS_VISIBILITY_TIMEOUT},
-               {"name": "AWS_SQS_QUEUE_URL", "value": $AWS_SQS_QUEUE_URL},
-               {"name": "MODEL_PATH", "value": $MODEL_PATH},
-               {"name": "ZEROSHOT_MODEL_NAME", "value": $ZEROSHOT_MODEL_NAME},
-               {"name": "AWS_SQS_MAX_DEPTH", "value": $AWS_SQS_MAX_DEPTH},
-               {"name": "FCM_KEY_S3_PATH", "value": $FCM_KEY_S3_PATH},
-               {"name": "AWS_S3_BUCKET_NAME", "value": $AWS_S3_BUCKET_NAME},
-               {"name": "IMAGE_PATH", "value": $IMAGE_PATH},
-               {"name": "COOKIES_S3_PATH", "value": $COOKIES_S3_PATH},
-               {"name": "AMPLITUDE_API_KEY", "value": $AMPLITUDE_API_KEY},
-               {"name": "LOGFIRE_TOKEN", "value": $LOGFIRE_TOKEN}
-             ] |
-             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
-            task-def.json > new-task-def.json
-
-          echo "Registering new task definition revision..."
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file://new-task-def.json \
-            --query 'taskDefinition.taskDefinitionArn' --output text)
-
-          echo "New Task Definition ARN: $NEW_TASK_DEF_ARN"
+          gcloud run jobs update ${{ vars.GCP_JOB_NAME }} \
+          --image=$IMAGE_URI \
+          --region=${{ vars.GCP_REGION }} \
+          --project=${{ secrets.GCP_PROJECT_ID }} \
+          --set-env-vars="
+            SERVER_PORT=${{ vars.SERVER_PORT }},
+            POSTGRES_HOST=${{ secrets.POSTGRES_HOST }},
+            POSTGRES_PORT=${{ secrets.POSTGRES_PORT }},
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }},
+            AWS_RDS_SECRETS_MANAGER=${{ secrets.AWS_RDS_SECRETS_MANAGER }},
+            AWS_RDS_SECRET_NAME=${{ secrets.AWS_RDS_SECRET_NAME }},
+            AWS_REGION=${{ vars.AWS_REGION }},
+            AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }},
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }},
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }},
+            AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }},
+            DOCKER_IMAGE_NAME=${{ vars.DOCKER_IMAGE_NAME }},
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},
+            AWS_SQS_POLL_COUNT=${{ vars.AWS_SQS_POLL_COUNT }},
+            AWS_SQS_MAX_NUMBER_OF_MESSAGES=${{ vars.AWS_SQS_MAX_NUMBER_OF_MESSAGES }},
+            AWS_SQS_WAIT_TIME_SECONDS=${{ vars.AWS_SQS_WAIT_TIME_SECONDS }},
+            AWS_SQS_VISIBILITY_TIMEOUT=${{ vars.AWS_SQS_VISIBILITY_TIMEOUT }},
+            AWS_SQS_QUEUE_URL=${{ secrets.AWS_SQS_QUEUE_URL }},
+            MODEL_PATH=${{ vars.MODEL_PATH }},
+            ZEROSHOT_MODEL_NAME=${{ vars.ZEROSHOT_MODEL_NAME }},
+            AWS_SQS_MAX_DEPTH=${{ vars.AWS_SQS_MAX_DEPTH }},
+            FCM_KEY_S3_PATH=${{ vars.FCM_KEY_S3_PATH }},
+            IMAGE_PATH=${{ vars.IMAGE_PATH }},
+            COOKIES_S3_PATH=${{ vars.COOKIES_S3_PATH }},
+            AMPLITUDE_API_KEY=${{ secrets.AMPLITUDE_API_KEY }},
+            LOGFIRE_TOKEN=${{ secrets.LOGFIRE_TOKEN }}
+          "
 
