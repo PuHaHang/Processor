@@ -5,6 +5,7 @@ import logfire
 from src.subscriber.subscriber import poll_messages
 
 api_key = os.getenv("LOGFIRE_TOKEN", "")
+print(repr(api_key))
 if type(api_key) == bytes:
     api_key = api_key.decode("utf-8")
 logfire.configure(token=api_key)
