@@ -147,7 +147,7 @@ jobs:
       - name: Get image digest
         id: push-digest
         run: |
-          REPO_PATH=${{ env.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}
+          REPO_PATH=${{ vars.ARTIFACT_HOST }}/${{ secrets.GCP_PROJECT_ID }}/${{ vars.GCP_REPO_NAME }}
           DIGEST=$(gcloud artifacts docker images list $REPO_PATH \
                   --filter="IMAGE~${{ vars.GCP_IMAGE_NAME }}" \
                   --format="get(DIGEST)" --limit=1)
