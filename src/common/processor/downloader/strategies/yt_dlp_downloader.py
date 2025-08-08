@@ -250,16 +250,16 @@ class YtDlpDownloader (DownloaderStrategy):
             'no_warnings': True,
             'noplaylist': True,
             # 'cookies': self.cookie_file_path,
-            # 'geo_bypass': True,
-            # 'no_check_certificate': True,
+            'geo_bypass': True,
+            'no_check_certificate': True,
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
-            # 'headers': {
-            #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-            #     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
-            #     'Accept-Language': 'en-US,en;q=0.9',
-            #     'Referer': 'https://www.youtube.com/',
-            #     'Origin': 'https://www.youtube.com',
-            # }
+            'headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.youtube.com/',
+                'Origin': 'https://www.youtube.com',
+            }
         }
         with YoutubeDL(ydl_opts) as ydl:
             # 비디오 정보 추출
@@ -320,17 +320,17 @@ class YtDlpDownloader (DownloaderStrategy):
             'quiet': True,
             'no_warnings': True,
             'noplaylist': True,
-                # 'cookies': self.cookie_file_path,
-                # 'geo_bypass': True,
-                # 'no_check_certificate': True,
-                # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
-                # 'headers': {
-                #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-                #     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
-                #     'Accept-Language': 'en-US,en;q=0.9',
-                #     'Referer': 'https://www.youtube.com/',
-                #     'Origin': 'https://www.youtube.com',
-                # }
+            # 'cookies': self.cookie_file_path,
+            'geo_bypass': True,
+            'no_check_certificate': True,
+            # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
+            'headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.youtube.com/',
+                'Origin': 'https://www.youtube.com',
+            }
         }
         with YoutubeDL(ydl_opts) as ydl:
             # 비디오 정보 추출하여 실제 스트림 URL 획득
@@ -370,16 +370,16 @@ class YtDlpDownloader (DownloaderStrategy):
             'skip_download': True,
             'simulate': True,
             # 'cookies': self.cookie_file_path,
-            # 'geo_bypass': True,
-            # 'no_check_certificate': True,
+            'geo_bypass': True,
+            'no_check_certificate': True,
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
-            # 'headers': {
-            #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-            #     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
-            #     'Accept-Language': 'en-US,en;q=0.9',
-            #     'Referer': 'https://www.youtube.com/',
-            #     'Origin': 'https://www.youtube.com',
-            # }
+            'headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.youtube.com/',
+                'Origin': 'https://www.youtube.com',
+            }
         }
 
         with YoutubeDL(ydl_opts) as ydl:
