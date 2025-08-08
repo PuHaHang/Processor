@@ -7,6 +7,7 @@ YouTube-DL 다운로더 모듈
 
 import io
 import os, sys
+import traceback
 from typing import Any, Tuple
 
 from yt_dlp.utils import DownloadError
@@ -384,9 +385,13 @@ class YtDlpDownloader (DownloaderStrategy):
                 'Origin': 'https://www.youtube.com',
             }
         }
-
-        with YoutubeDL(ydl_opts) as ydl:
-            ydl.extract_info(url, download=False)
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                ydl.extract_info(url, download=False)
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(tb)
+            raise e
         return True
     
     def _get_metadata_by_keys(self, info: dict, keys: dict[str, Any] = metadata_keys_to_get) -> dict:
