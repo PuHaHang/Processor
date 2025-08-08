@@ -52,4 +52,4 @@ amplitude-analytics
 logfire
 boto3
 pillow
-yt-dlp-get-pot
+# yt-dlp-get-pot
