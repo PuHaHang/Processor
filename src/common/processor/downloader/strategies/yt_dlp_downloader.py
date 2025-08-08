@@ -256,7 +256,7 @@ class YtDlpDownloader (DownloaderStrategy):
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
             'extractor_args': {
                 "youtube": {
-                    "player_client": ["web_safari", "mweb", "web"]
+                    "player_client": ["mweb", "web_safari", "web"]
                 }
             },
             'headers': {
@@ -265,7 +265,11 @@ class YtDlpDownloader (DownloaderStrategy):
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': 'https://www.youtube.com/',
                 'Origin': 'https://www.youtube.com',
-            }
+            },
+            "format": (
+                "bestvideo[protocol*=m3u8]+bestaudio[protocol*=m3u8]/"
+                "best[protocol*=m3u8]/best"
+            ),
         }
         with YoutubeDL(ydl_opts) as ydl:
             # 비디오 정보 추출
@@ -332,7 +336,7 @@ class YtDlpDownloader (DownloaderStrategy):
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
             'extractor_args': {
                 "youtube": {
-                    "player_client": ["web_safari", "mweb", "web"]
+                    "player_client": ["mweb", "web_safari", "web"]
                 }
             },
             'headers': {
@@ -341,7 +345,11 @@ class YtDlpDownloader (DownloaderStrategy):
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': 'https://www.youtube.com/',
                 'Origin': 'https://www.youtube.com',
-            }
+            },
+            "format": (
+                "bestvideo[protocol*=m3u8]+bestaudio[protocol*=m3u8]/"
+                "best[protocol*=m3u8]/best"
+            ),
         }
         with YoutubeDL(ydl_opts) as ydl:
             # 비디오 정보 추출하여 실제 스트림 URL 획득
@@ -386,7 +394,7 @@ class YtDlpDownloader (DownloaderStrategy):
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
             'extractor_args': {
                 "youtube": {
-                    "player_client": ["web_safari", "mweb", "web"]
+                    "player_client": ["mweb", "web_safari", "web"]
                 }
             },
             'headers': {
@@ -395,7 +403,11 @@ class YtDlpDownloader (DownloaderStrategy):
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': 'https://www.youtube.com/',
                 'Origin': 'https://www.youtube.com',
-            }
+            },
+            "format": (
+                "bestvideo[protocol*=m3u8]+bestaudio[protocol*=m3u8]/"
+                "best[protocol*=m3u8]/best"
+            ),
         }
         try:
             with YoutubeDL(ydl_opts) as ydl:
