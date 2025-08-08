@@ -389,9 +389,11 @@ class YtDlpDownloader (DownloaderStrategy):
             with YoutubeDL(ydl_opts) as ydl:
                 ydl.extract_info(url, download=False)
         except Exception as e:
-            tb = traceback.format_exc()
-            print(tb)
-            raise e
+            traceback.print_exc()
+            traceback.print_tb(e.__traceback__)
+            print("-----")
+            traceback.print_exception(e)
+            raise
         return True
     
     def _get_metadata_by_keys(self, info: dict, keys: dict[str, Any] = metadata_keys_to_get) -> dict:

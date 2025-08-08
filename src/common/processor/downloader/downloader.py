@@ -52,6 +52,7 @@ class Downloader (Processor):
     )
     def _get_context(self, payload: Payload) -> DownloaderStrategy:
         for strategy in self.strategies:
+            print("strategy:", strategy)
             if strategy.is_supported(payload):
                 return strategy
         raise ExternalServiceException(
