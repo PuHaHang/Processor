@@ -256,7 +256,7 @@ class YtDlpDownloader (DownloaderStrategy):
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
             'extractor_args': {
                 "youtube": {
-                    "player_client": "android"
+                    "player_client": ["android", "ios", "tv"]
                 }
             },
             'headers': {
@@ -332,7 +332,7 @@ class YtDlpDownloader (DownloaderStrategy):
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
             'extractor_args': {
                 "youtube": {
-                    "player_client": "android"
+                    "player_client": ["android", "ios", "tv"]
                 }
             },
             'headers': {
@@ -386,7 +386,7 @@ class YtDlpDownloader (DownloaderStrategy):
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
             'extractor_args': {
                 "youtube": {
-                    "player_client": "android"
+                    "player_client": ["android", "ios", "tv"]
                 }
             },
             'headers': {
