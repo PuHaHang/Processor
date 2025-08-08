@@ -53,3 +53,5 @@ logfire
 boto3
 pillow
 # yt-dlp-get-pot
+google-api-python-client
+youtube-transcript-api

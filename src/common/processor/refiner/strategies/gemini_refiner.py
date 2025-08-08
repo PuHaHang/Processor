@@ -8,6 +8,7 @@ Gemini 기반 레시피 정제 전략 모듈
 import base64
 import json
 import logging
+import traceback
 from typing import Tuple, Optional, Any
 
 import logfire
@@ -65,7 +66,7 @@ class GeminiRefiner(RefinerStrategy):
             ValueError: 지원하지 않는 데이터 타입인 경우
             RuntimeError: Gemini 클라이언트 초기화 또는 API 호출 실패
         """
-        
+        print("payload:", payload)
         # 입력 검증
         if not self.is_supported(payload):
             raise ValidationException(
@@ -152,10 +153,10 @@ class GeminiRefiner(RefinerStrategy):
         base_prompt = self._prompt_generator.get_video_recipe_prompt()
         context_prompt = self._prompt_generator.get_content_context_prompt(payload.metadata)
         full_prompt = context_prompt + base_prompt + self._prompt_generator.get_recipe_prompt_format()
-        
+
         # Gemini API 호출
         response = self._call_gemini_with_video(client, video_b64, full_prompt)
-        
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         return self._extract_recipe_content(response)
 
     def _process_audio_data(self, client: GeminiClient, payload: Payload) -> str:
@@ -219,25 +220,32 @@ class GeminiRefiner(RefinerStrategy):
             str: API 응답 텍스트
         """
         # Gemini에 비디오와 텍스트 프롬프트 전송
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[
-                {
-                    'parts': [
-                        {'text': prompt},
-                        {
-                            'inline_data': {
-                                'mime_type': 'video/mp4',
-                                'data': video_b64
+        print("gemini_with_video")
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[
+                    {
+                        'parts': [
+                            {'text': prompt},
+                            {
+                                'inline_data': {
+                                    'mime_type': 'video/mp4',
+                                    'data': video_b64
+                                }
                             }
-                        }
-                    ]
-                }
-            ]
-        )
-        if response.text is None:
-            raise RuntimeError("Gemini에서 빈 응답을 받았습니다")
-        return response.text
+                        ]
+                    }
+                ]
+            )
+            if response.text is None:
+                raise RuntimeError("Gemini에서 빈 응답을 받았습니다")
+            return response.text
+        except Exception as e:
+            print("gemini_with_video error:", e)
+            traceback.print_exc()
+            traceback.print_stack()
+            raise e
 
     def _call_gemini_with_audio(self, client: GeminiClient, audio_b64: str, prompt: str) -> str:
         """
@@ -252,6 +260,7 @@ class GeminiRefiner(RefinerStrategy):
             str: API 응답 텍스트
         """
         # Gemini에 오디오와 텍스트 프롬프트 전송
+        print("gemini_with_audio")
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[
@@ -284,6 +293,7 @@ class GeminiRefiner(RefinerStrategy):
             str: API 응답 텍스트
         """
         # Gemini에 텍스트 프롬프트 전송
+        print("gemini_with_text")
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[{'parts': [{'text': prompt}]}]

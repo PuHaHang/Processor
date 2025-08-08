@@ -189,6 +189,7 @@ jobs:
             IMAGE_PATH=${{ vars.IMAGE_PATH }},
             COOKIES_S3_PATH=${{ vars.COOKIES_S3_PATH }},
             AMPLITUDE_API_KEY=${{ secrets.AMPLITUDE_API_KEY }},
-            LOGFIRE_TOKEN=${{ secrets.LOGFIRE_TOKEN }}
+            LOGFIRE_TOKEN=${{ secrets.LOGFIRE_TOKEN }},
+            YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}
           "
 

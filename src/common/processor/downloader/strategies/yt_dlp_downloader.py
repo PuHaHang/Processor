@@ -79,35 +79,17 @@ class YtDlpDownloader (DownloaderStrategy):
     }
     cookie_file_path: str = "/tmp/cookies.txt"
     
-    @ExceptionHandler(
-        exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="yt_dlp_process_handler"
-    )
-    @RetryOnException(
-        max_retries=3,
-        retry_delay=2.0,
-        backoff_factor=2.0,
-        exception_types=[ConnectionError, TimeoutError, DownloadError, requests.exceptions.RequestException],
-        reraise_on_failure=True
-    )
-    @CircuitBreaker(
-        failure_threshold=5,
-        recovery_timeout=60,
-        expected_exception=ConnectionError
-    )
+
     def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
-        URL에서 오디오를 다운로드하여 버퍼 데이터로 변환합니다.
+        URL에서 비디오를 다운로드하여 버퍼 데이터로 변환합니다.
         
         Args:
             payload (Payload): 처리할 URL 버퍼 데이터
             opt (dict, optional): 처리 옵션
         
         Returns:
-            Payload: 다운로드된 오디오 데이터가 포함된 버퍼 데이터
+            Payload: 다운로드된 비디오 데이터가 포함된 버퍼 데이터
             
         Raises:
             ValueError: 지원되지 않는 URL 형식인 경우
@@ -153,15 +135,7 @@ class YtDlpDownloader (DownloaderStrategy):
         """
         return self.data_flow[0] == payload.data_type and \
             self._is_supported(payload.get_buffer().decode('utf-8'))
-
-
-    @ExceptionHandler(
-        exception_type=ExceptionType.NETWORK_ERROR,
-        severity=ExceptionSeverity.MEDIUM,
-        reraise=True,
-        log_level="warning",
-        handler_name="stream_download_handler"
-    )
+    
     @RetryOnException(
         max_retries=2,
         retry_delay=1.0,
@@ -180,13 +154,6 @@ class YtDlpDownloader (DownloaderStrategy):
         """
         return self._perform_stream_download(stream_url)
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.NETWORK_ERROR,
-        severity=ExceptionSeverity.MEDIUM,
-        reraise=True,
-        log_level="error",
-        handler_name="stream_download_core_handler"
-    )
     def _perform_stream_download(self, stream_url: str) -> io.BytesIO:
         """
         실제 스트림 다운로드를 수행하는 내부 메소드
@@ -203,18 +170,6 @@ class YtDlpDownloader (DownloaderStrategy):
             return io.BytesIO(response.content)
 
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.METADATA_EXTRACTION_ERROR,
-        severity=ExceptionSeverity.MEDIUM,
-        reraise=True,
-        log_level="info",
-        handler_name="metadata_extraction_handler"
-    )
-    @RetryOnException(
-        max_retries=2,
-        retry_delay=1.0,
-        exception_types=[DownloadError, ConnectionError]
-    )
     def _extract_metadata(self, video_url: str) -> dict:
         """
         비디오 URL에서 메타데이터를 추출합니다.
@@ -227,13 +182,7 @@ class YtDlpDownloader (DownloaderStrategy):
         """
         return self._perform_metadata_extraction(video_url)
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.METADATA_EXTRACTION_ERROR,
-        severity=ExceptionSeverity.MEDIUM,
-        reraise=True,
-        log_level="error",
-        handler_name="metadata_extraction_core_handler"
-    )
+
     def _perform_metadata_extraction(self, video_url: str) -> dict:
         """
         실제 메타데이터 추출을 수행하는 내부 메소드
@@ -251,25 +200,25 @@ class YtDlpDownloader (DownloaderStrategy):
             'no_warnings': True,
             'noplaylist': True,
             # 'cookies': self.cookie_file_path,
-            'geo_bypass': True,
-            'no_check_certificate': True,
+            # 'geo_bypass': True,
+            # 'no_check_certificate': True,
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
-            'extractor_args': {
-                "youtube": {
-                    "player_client": ["web_safari", "mweb", "web"]
-                }
-            },
-            'headers': {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://www.youtube.com/',
-                'Origin': 'https://www.youtube.com',
-            },
-            "format": (
-                "bestvideo[protocol*=m3u8]+bestaudio[protocol*=m3u8]/"
-                "best[protocol*=m3u8]/best"
-            ),
+            # 'extractor_args': {
+            #     "youtube": {
+            #         "player_client": ["web_safari", "mweb", "web"]
+            #     }
+            # },
+            # 'headers': {
+            #     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            #     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
+            #     'Accept-Language': 'en-US,en;q=0.9',
+            #     'Referer': 'https://www.youtube.com/',
+            #     'Origin': 'https://www.youtube.com',
+            # },
+            # "format": (
+            #     "bestvideo[protocol*=m3u8]+bestaudio[protocol*=m3u8]/"
+            #     "best[protocol*=m3u8]/best"
+            # ),
         }
         with YoutubeDL(ydl_opts) as ydl:
             # 비디오 정보 추출
@@ -278,19 +227,6 @@ class YtDlpDownloader (DownloaderStrategy):
                 return {}
             return self._get_metadata_by_keys(info)
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="stream_url_extraction_handler"
-    )
-    @RetryOnException(
-        max_retries=3,
-        retry_delay=2.0,
-        backoff_factor=2.0,
-        exception_types=[DownloadError, ConnectionError]
-    )
     def _extract_stream_url(self, url: str) -> str:
         """
         비디오 URL에서 실제 오디오 스트림 URL을 추출합니다.
@@ -306,13 +242,7 @@ class YtDlpDownloader (DownloaderStrategy):
         """
         return self._perform_stream_url_extraction(url)
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="stream_url_extraction_core_handler"
-    )
+
     def _perform_stream_url_extraction(self, url: str) -> str:
         """
         실제 스트림 URL 추출을 수행하는 내부 메소드
@@ -331,25 +261,25 @@ class YtDlpDownloader (DownloaderStrategy):
             'no_warnings': True,
             'noplaylist': True,
             # 'cookies': self.cookie_file_path,
-            'geo_bypass': True,
-            'no_check_certificate': True,
+            # 'geo_bypass': True,
+            # 'no_check_certificate': True,
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
-            'extractor_args': {
-                "youtube": {
-                    "player_client": ["web_safari", "mweb", "web"]
-                }
-            },
-            'headers': {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://www.youtube.com/',
-                'Origin': 'https://www.youtube.com',
-            },
-            "format": (
-                "bestvideo[protocol*=m3u8]+bestaudio[protocol*=m3u8]/"
-                "best[protocol*=m3u8]/best"
-            ),
+            # 'extractor_args': {
+            #     "youtube": {
+            #         "player_client": ["web_safari", "mweb", "web"]
+            #     }
+            # },
+            # 'headers': {
+            #     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            #     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
+            #     'Accept-Language': 'en-US,en;q=0.9',
+            #     'Referer': 'https://www.youtube.com/',
+            #     'Origin': 'https://www.youtube.com',
+            # },
+            # "format": (
+            #     "bestvideo[protocol*=m3u8]+bestaudio[protocol*=m3u8]/"
+            #     "best[protocol*=m3u8]/best"
+            # ),
         }
         with YoutubeDL(ydl_opts) as ydl:
             # 비디오 정보 추출하여 실제 스트림 URL 획득
@@ -366,14 +296,6 @@ class YtDlpDownloader (DownloaderStrategy):
     def _is_supported(self, url: str) -> bool:
         return self._perform_support_check(url)
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
-        severity=ExceptionSeverity.LOW,
-        reraise=False,
-        default_return=False,
-        log_level="debug",
-        handler_name="support_check_handler"
-    )
     def _perform_support_check(self, url: str) -> bool:
         """
         실제 지원 여부 확인을 수행하는 내부 메소드
@@ -389,25 +311,25 @@ class YtDlpDownloader (DownloaderStrategy):
             'skip_download': True,
             'simulate': True,
             # 'cookies': self.cookie_file_path,
-            'geo_bypass': True,
-            'no_check_certificate': True,
+            # 'geo_bypass': True,
+            # 'no_check_certificate': True,
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
-            'extractor_args': {
-                "youtube": {
-                    "player_client": ["web_safari", "mweb", "web"]
-                }
-            },
-            'headers': {
-                'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://www.youtube.com/',
-                'Origin': 'https://www.youtube.com',
-            },
-            "format": (
-                "bestvideo[protocol*=m3u8]+bestaudio[protocol*=m3u8]/"
-                "best[protocol*=m3u8]/best"
-            ),
+            # 'extractor_args': {
+            #     "youtube": {
+            #         "player_client": ["web_safari", "mweb", "web"]
+            #     }
+            # },
+            # 'headers': {
+            #     'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+            #     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
+            #     'Accept-Language': 'en-US,en;q=0.9',
+            #     'Referer': 'https://www.youtube.com/',
+            #     'Origin': 'https://www.youtube.com',
+            # },
+            # "format": (
+            #     "bestvideo[protocol*=m3u8]+bestaudio[protocol*=m3u8]/"
+            #     "best[protocol*=m3u8]/best"
+            # ),
         }
         try:
             with YoutubeDL(ydl_opts) as ydl:
@@ -417,7 +339,7 @@ class YtDlpDownloader (DownloaderStrategy):
             traceback.print_tb(e.__traceback__)
             print("-----")
             traceback.print_exception(e)
-            raise
+            return False
         return True
     
     def _get_metadata_by_keys(self, info: dict, keys: dict[str, Any] = metadata_keys_to_get) -> dict:
