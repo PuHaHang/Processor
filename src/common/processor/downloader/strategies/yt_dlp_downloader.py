@@ -255,7 +255,7 @@ class YtDlpDownloader (DownloaderStrategy):
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
             'extractor_args': "youtube:player_client=android",
             'headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Mobile Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': 'https://www.youtube.com/',
@@ -327,7 +327,7 @@ class YtDlpDownloader (DownloaderStrategy):
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
             'extractor_args': "youtube:player_client=android",
             'headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Mobile Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': 'https://www.youtube.com/',
@@ -377,7 +377,7 @@ class YtDlpDownloader (DownloaderStrategy):
             # 'extractor_args': f'youtubepot-bgutilhttp:base_url={os.getenv("YOUTUBE_POT_HTTP_URL", "http://localhost:4416")}',
             'extractor_args': "youtube:player_client=android",
             'headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'User-Agent': "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Mobile Safari/537.36",
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': 'https://www.youtube.com/',
