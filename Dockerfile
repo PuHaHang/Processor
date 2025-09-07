@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     redis-tools \
     curl \
+    awscli \
     && rm -rf /var/lib/apt/lists/*
 
 # Python 의존성 설치를 위한 requirements.txt 복사
@@ -16,6 +17,7 @@ COPY requirements.txt .
 
 # Python 패키지 설치
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -U yt-dlp
 
 # 애플리케이션 코드 복사
 COPY . .
@@ -26,5 +28,8 @@ ENV PYTHONPATH="${PYTHONPATH}:/app/src"
 # 포트 설정 (필요에 따라 수정)
 EXPOSE ${SERVER_PORT}
 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # 애플리케이션 실행
-CMD ["python", "server.py"] 
+ENTRYPOINT ["/entrypoint.sh"] 
