@@ -12,10 +12,14 @@ from typing import Generator, Optional
 from contextlib import contextmanager
 import logfire
 
+from sqlalchemy.dialects.postgresql import psycopg2 as psycopg2_dialect
+import psycopg2
 from sqlmodel import create_engine, Session, SQLModel, text
 from sqlalchemy import event, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.pool import QueuePool
+from aws_secretsmanager_caching import SecretCache, SecretCacheConfig
+import botocore.session
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -66,10 +70,10 @@ class DatabaseManager:
     def __init__(self):
         self.engine = None
         self._is_initialized = False
+        self._secret_cache = None
 
     def initialize(
         self,
-        database_url: Optional[str] = None,
         echo: bool = False,
         pool_size: int = 10,
         max_overflow: int = 20,
@@ -90,23 +94,31 @@ class DatabaseManager:
         if self._is_initialized:
             logfire.warn('데이터베이스가 이미 초기화됨')
             return
-
-        # 데이터베이스 URL 설정
-        if database_url is None:
-            database_url = self._get_database_url()
-
+        
         try:
-            # SQLModel에 최적화된 엔진 생성
+                # Secrets Manager 캐시 준비 (선택: refresh interval 조정)
+            if os.getenv("AWS_SECRETS_MANAGER_ENABLED", ""):
+                sm_client = botocore.session.get_session().create_client(
+                    'secretsmanager',
+                    region_name=os.getenv("AWS_REGION", "ap-northeast-2"),
+                )
+                cache_cfg = SecretCacheConfig(
+                    # 기본값: secret_refresh_interval=3600.0
+                    # 필요 시 더 짧게: secret_refresh_interval=900.0
+                )
+                self._secret_cache = SecretCache(config=cache_cfg, client=sm_client)
+
             self.engine = create_engine(
-                database_url,
+                "postgresql+psycopg2://",
+                creator=self._connect,        # 연결 시점마다 최신 시크릿 사용
                 echo=echo,
                 poolclass=QueuePool,
                 pool_size=pool_size,
                 max_overflow=max_overflow,
                 pool_timeout=pool_timeout,
-                pool_recycle=pool_recycle,
-                pool_pre_ping=True,  # 연결 상태 확인
-                future=True,  # SQLAlchemy 2.0 스타일 사용
+                pool_recycle=pool_recycle,    # 회전 이후 새 연결은 최신 비번으로
+                pool_pre_ping=True,           # 죽은 커넥션 감지
+                future=True,
             )
 
             # 메타데이터 naming convention 설정
@@ -123,20 +135,33 @@ class DatabaseManager:
             logfire.error('데이터베이스 초기화 실패 {error}', error=str(e))
             raise
 
-    def _get_database_url(self) -> str:
+    def _connect(self):
         """환경변수로부터 데이터베이스 URL을 구성합니다."""
+        secret = {}
+        if os.getenv("AWS_SECRETS_MANAGER_ENABLED", ""):
+            secret = get_secret()
+            print(secret)
+        else:
+            secret = {
+                "username": os.getenv("POSTGRES_USER", ""),
+                "password": os.getenv("POSTGRES_PW", ""),
+            }
+        
+        username = secret['username']
+        password = secret['password']
+
         host = os.getenv("POSTGRES_HOST", "localhost")
         port = os.getenv("POSTGRES_PORT", "5432")
         database = os.getenv("POSTGRES_DB", "postgres")
-        username = os.getenv("POSTGRES_USER", "")
-        password = os.getenv("POSTGRES_PW", "")
 
-        if not username or not password:
-            secret = get_secret()
-            username = secret['username']
-            password = secret['password']
-
-        return f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}"
+        return psycopg2.connect(
+            host=host,
+            port=port,
+            dbname=database,
+            user=username,
+            password=password,
+            sslmode='require'
+        )
 
     def _setup_event_listeners(self) -> None:
         """SQLAlchemy 이벤트 리스너를 설정합니다."""

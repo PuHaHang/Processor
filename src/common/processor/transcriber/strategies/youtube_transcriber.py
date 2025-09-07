@@ -2,6 +2,8 @@ import os
 import re
 from typing import Tuple
 
+import logfire
+
 from src.common.exception.custom_exceptions import ValidationException
 from src.common.processor.formatter.formatter import Formatter
 from src.common.processor.types.payload_status import PayloadStatus
@@ -62,19 +64,16 @@ class YoutubeTranscriber(TranscriberStrategy):
             )
         
         video_id = reference["url"].split('v=')[-1]
-        print("video_id:", video_id)
 
         transcript = YouTubeTranscriptApi().fetch(video_id, languages=['ko', 'en', 'ja'])
         srt_formatter = SRTFormatter()
         srt_formatted = srt_formatter.format_transcript(transcript)
-
-        print("srt_formatted:", srt_formatted)
-
+        logfire.info('YoutubeTranscriber 처리 완료 {video_id}', video_id=video_id)
         return Payload(
             buffer=srt_formatted.encode('utf-8'),
             metadata={
                 **self._get_video_author(video_id),
-                **reference,
+                "reference": reference,
             },
             data_type=DataType.TEXT,
             status=PayloadStatus.COMPLETED,
