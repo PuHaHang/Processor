@@ -15,8 +15,9 @@ RUN apt-get update && apt-get install -y \
     awscli \
     && rm -rf /var/lib/apt/lists/*
 
-# Python 의존성 설치를 위한 requirements.txt 복사
-COPY requirements.txt .
+# Python 의존성 설치를 위한 pyproject.toml 및 uv.lock 복사
+COPY pyproject.toml .
+COPY uv.lock .
 
 # Python 패키지 설치
 RUN uv sync
