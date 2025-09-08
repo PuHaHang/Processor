@@ -36,7 +36,6 @@ class Refiner(Processor):
 
     def _get_context(self, payload: Payload) -> RefinerStrategy | None:
         for strategy in self.strategies:
-            print("strategy:", strategy)
             if strategy.is_supported(payload):
                 return strategy
         return None
