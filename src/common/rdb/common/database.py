@@ -138,9 +138,8 @@ class DatabaseManager:
     def _connect(self):
         """환경변수로부터 데이터베이스 URL을 구성합니다."""
         secret = {}
-        if os.getenv("AWS_SECRETS_MANAGER_ENABLED", ""):
+        if os.getenv("AWS_SECRETS_MANAGER_ENABLED", "false") == "true":
             secret = get_secret()
-            print(secret)
         else:
             secret = {
                 "username": os.getenv("POSTGRES_USER", ""),
