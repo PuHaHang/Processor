@@ -8,6 +8,7 @@ Gemini 기반 레시피 정제 전략 모듈
 import base64
 import json
 import logging
+import traceback
 from typing import Tuple, Optional, Any
 
 import logfire
@@ -19,14 +20,7 @@ from ....prompt.recipe_refiner_prompt import RecipeRefinerPrompt
 
 # 예외 핸들러 import
 from ....exception import (
-    ExceptionHandler,
-    RetryOnException,
-    ValidationExceptionHandler,
-    ExceptionType,
-    ExceptionSeverity,
-    ExternalServiceException,
     ValidationException,
-    ProcessingException
 )
 
 
@@ -55,21 +49,8 @@ class GeminiRefiner(RefinerStrategy):
         self._client: Optional[GeminiClient] = None
         self._prompt_generator = RecipeRefinerPrompt()
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.REFINING_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="gemini_refiner_process_handler"
-    )
-    @RetryOnException(
-        max_retries=3,
-        retry_delay=2.0,
-        backoff_factor=2.0,
-        exception_types=[ConnectionError, TimeoutError],
-        reraise_on_failure=True
-    )
-    @ValidationExceptionHandler(reraise=True)
+
+
     def process(self, payload: Payload, opt: dict = {}) -> Payload:
         """
         페이로드 데이터를 Gemini 모델을 통해 레시피로 정제합니다.
@@ -85,7 +66,7 @@ class GeminiRefiner(RefinerStrategy):
             ValueError: 지원하지 않는 데이터 타입인 경우
             RuntimeError: Gemini 클라이언트 초기화 또는 API 호출 실패
         """
-        
+        print("payload:", payload)
         # 입력 검증
         if not self.is_supported(payload):
             raise ValidationException(
@@ -127,7 +108,6 @@ class GeminiRefiner(RefinerStrategy):
         self._logger.info(f"레시피 정제 완료: {payload.data_type.name} → TEXT")
         return result_payload
 
-    @ValidationExceptionHandler(reraise=False, default_return=False)
     def is_supported(self, payload: Payload) -> bool:
         """
         페이로드가 이 정제기에서 지원되는지 확인합니다.
@@ -141,13 +121,6 @@ class GeminiRefiner(RefinerStrategy):
         supported_types = {DataType.VIDEO, DataType.AUDIO, DataType.TEXT}
         return payload.data_type in supported_types
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.MODEL_LOADING_ERROR,
-        severity=ExceptionSeverity.CRITICAL,
-        reraise=True,
-        log_level="error",
-        handler_name="gemini_client_init_handler"
-    )
     def _get_gemini_client(self) -> GeminiClient:
         """
         Gemini 클라이언트 인스턴스를 가져옵니다. (Singleton 패턴)
@@ -162,13 +135,6 @@ class GeminiRefiner(RefinerStrategy):
             self._client = GeminiClient()
         return self._client
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.VIDEO_PROCESSING_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="video_processing_handler"
-    )
     def _process_video_data(self, client: GeminiClient, payload: Payload) -> str:
         """
         비디오 데이터를 Gemini 모델을 통해 레시피로 정제합니다.
@@ -187,19 +153,11 @@ class GeminiRefiner(RefinerStrategy):
         base_prompt = self._prompt_generator.get_video_recipe_prompt()
         context_prompt = self._prompt_generator.get_content_context_prompt(payload.metadata)
         full_prompt = context_prompt + base_prompt + self._prompt_generator.get_recipe_prompt_format()
-        
+
         # Gemini API 호출
         response = self._call_gemini_with_video(client, video_b64, full_prompt)
-        
         return self._extract_recipe_content(response)
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.REFINING_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="audio_processing_handler"
-    )
     def _process_audio_data(self, client: GeminiClient, payload: Payload) -> str:
         """
         오디오 데이터를 Gemini 모델을 통해 레시피로 정제합니다.
@@ -224,13 +182,6 @@ class GeminiRefiner(RefinerStrategy):
         
         return self._extract_recipe_content(response)
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.REFINING_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="text_processing_handler"
-    )
     def _process_text_data(self, client: GeminiClient, payload: Payload) -> str:
         """
         텍스트 데이터를 Gemini 모델을 통해 구조화된 레시피로 정제합니다.
@@ -255,13 +206,6 @@ class GeminiRefiner(RefinerStrategy):
         
         return self._extract_recipe_content(response)
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="gemini_video_api_handler"
-    )
     def _call_gemini_with_video(self, client: GeminiClient, video_b64: str, prompt: str) -> str:
         """
         Gemini API를 통해 비디오와 함께 프롬프트를 전송합니다.
@@ -275,33 +219,32 @@ class GeminiRefiner(RefinerStrategy):
             str: API 응답 텍스트
         """
         # Gemini에 비디오와 텍스트 프롬프트 전송
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[
-                {
-                    'parts': [
-                        {'text': prompt},
-                        {
-                            'inline_data': {
-                                'mime_type': 'video/mp4',
-                                'data': video_b64
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[
+                    {
+                        'parts': [
+                            {'text': prompt},
+                            {
+                                'inline_data': {
+                                    'mime_type': 'video/mp4',
+                                    'data': video_b64
+                                }
                             }
-                        }
-                    ]
-                }
-            ]
-        )
-        if response.text is None:
-            raise RuntimeError("Gemini에서 빈 응답을 받았습니다")
-        return response.text
+                        ]
+                    }
+                ]
+            )
+            if response.text is None:
+                raise RuntimeError("Gemini에서 빈 응답을 받았습니다")
+            return response.text
+        except Exception as e:
+            print("gemini_with_video error:", e)
+            traceback.print_exc()
+            traceback.print_stack()
+            raise e
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="gemini_audio_api_handler"
-    )
     def _call_gemini_with_audio(self, client: GeminiClient, audio_b64: str, prompt: str) -> str:
         """
         Gemini API를 통해 오디오와 함께 프롬프트를 전송합니다.
@@ -335,13 +278,6 @@ class GeminiRefiner(RefinerStrategy):
             raise RuntimeError("Gemini에서 빈 응답을 받았습니다")
         return response.text
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.EXTERNAL_SERVICE_ERROR,
-        severity=ExceptionSeverity.HIGH,
-        reraise=True,
-        log_level="error",
-        handler_name="gemini_text_api_handler"
-    )
     def _call_gemini_with_text(self, client: GeminiClient, prompt: str) -> str:
         """
         Gemini API를 통해 텍스트 프롬프트를 전송합니다.
@@ -362,14 +298,6 @@ class GeminiRefiner(RefinerStrategy):
             raise RuntimeError("Gemini에서 빈 응답을 받았습니다")
         return response.text
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.JSON_PARSING_ERROR,
-        severity=ExceptionSeverity.MEDIUM,
-        reraise=False,
-        default_return=None,
-        log_level="warning",
-        handler_name="recipe_content_extraction_handler"
-    )
     def _extract_recipe_content(self, response: str) -> str:
         """
         Gemini 응답에서 레시피 내용을 추출하고 후처리합니다.
@@ -423,14 +351,6 @@ class GeminiRefiner(RefinerStrategy):
         
         return ""
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.JSON_PARSING_ERROR,
-        severity=ExceptionSeverity.MEDIUM,
-        reraise=False,
-        default_return=None,
-        log_level="warning",
-        handler_name="json_validation_handler"
-    )
     def _validate_and_format_json(self, json_content: str) -> str:
         """
         JSON 내용을 검증하고 포맷팅합니다.
@@ -465,14 +385,6 @@ class GeminiRefiner(RefinerStrategy):
         # JSON 포맷팅하여 반환
         return json.dumps(parsed_json, ensure_ascii=False, indent=2)
 
-    @ExceptionHandler(
-        exception_type=ExceptionType.JSON_PARSING_ERROR,
-        severity=ExceptionSeverity.MEDIUM,
-        reraise=False,
-        default_return=None,
-        log_level="warning",
-        handler_name="text_to_json_conversion_handler"
-    )
     def _convert_text_to_json(self, text: str) -> str:
         """
         일반 텍스트를 기본 JSON 구조로 변환합니다.

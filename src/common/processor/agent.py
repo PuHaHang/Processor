@@ -8,6 +8,7 @@ URL에서 오디오를 다운로드하고, 필요시 형식을 변환한 후, ST
 import logfire
 from src.common.processor.evaluator.strategies.generic_evaluator import GenericEvaluator
 from src.common.processor.evaluator.strategies.yt_dlp_evaluator import YtDlpEvaluator
+from src.common.processor.transcriber.strategies.youtube_transcriber import YoutubeTranscriber
 from src.common.rdb.common.database import DatabaseManager
 from src.common.rdb.domain.recipe.models import RecipeState
 from src.common.rdb.domain.recipe.recipe_base_service import RecipeBaseService
@@ -284,7 +285,8 @@ class Agent:
         
         if payload.data_type == DataType.URL:
             return [
-                Downloader(),     # 오디오 다운로드
+                # Downloader(),     # 오디오 다운로드
+                YoutubeTranscriber(),
                 # Converter(),    # 오디오 형식 변환 (현재 비활성화)
                 # Transcriber(),   # 오디오 → 텍스트 전사
                 Refiner(),       # 텍스트 → 정제

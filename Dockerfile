@@ -4,18 +4,23 @@ FROM python:3.12-slim
 # 작업 디렉토리 설정
 WORKDIR /app
 
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
 # 시스템 의존성 설치 (ffmpeg, redis-tools 등)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     redis-tools \
     curl \
+    awscli \
     && rm -rf /var/lib/apt/lists/*
 
-# Python 의존성 설치를 위한 requirements.txt 복사
-COPY requirements.txt .
+# Python 의존성 설치를 위한 pyproject.toml 및 uv.lock 복사
+COPY pyproject.toml .
+COPY uv.lock .
 
 # Python 패키지 설치
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv sync
 
 # 애플리케이션 코드 복사
 COPY . .
@@ -26,5 +31,8 @@ ENV PYTHONPATH="${PYTHONPATH}:/app/src"
 # 포트 설정 (필요에 따라 수정)
 EXPOSE ${SERVER_PORT}
 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # 애플리케이션 실행
-CMD ["python", "server.py"] 
+ENTRYPOINT ["/entrypoint.sh"] 
