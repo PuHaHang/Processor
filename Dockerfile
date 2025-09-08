@@ -4,6 +4,9 @@ FROM python:3.12-slim
 # 작업 디렉토리 설정
 WORKDIR /app
 
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
 # 시스템 의존성 설치 (ffmpeg, redis-tools 등)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
@@ -16,8 +19,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Python 패키지 설치
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install -U yt-dlp
+RUN uv sync
 
 # 애플리케이션 코드 복사
 COPY . .

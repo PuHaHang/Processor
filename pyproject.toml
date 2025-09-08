@@ -31,3 +31,28 @@ dependencies = [
     "youtube-transcript-api>=1.2.2",
     "yt-dlp>=2025.9.5",
 ]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest",
+    "pytest-mock",
+    "pytest-timeout",
+    "pytest-html",
+    "pytest-xdist",
+    "pytest-cov>=6.3.0",
+    "pytest-asyncio>=1.1.0",
+    "sqlalchemy>=2.0.43",
+    "psycopg2-binary>=2.9.10",
+    "alembic>=1.16.5",
+    "pydantic>=2.11.7",
+    "python-dotenv>=1.1.1",
+    "faker>=37.6.0",
+    "factory-boy>=3.3.3",
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "flake8>=7.3.0",
+    "mypy>=1.17.1",
+    "pylint>=3.3.8",
+    "ipython>=8.37.0",
+    "ipdb>=0.13.13",
+]
