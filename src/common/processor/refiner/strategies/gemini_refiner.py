@@ -156,7 +156,6 @@ class GeminiRefiner(RefinerStrategy):
 
         # Gemini API 호출
         response = self._call_gemini_with_video(client, video_b64, full_prompt)
-        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         return self._extract_recipe_content(response)
 
     def _process_audio_data(self, client: GeminiClient, payload: Payload) -> str:
@@ -220,7 +219,6 @@ class GeminiRefiner(RefinerStrategy):
             str: API 응답 텍스트
         """
         # Gemini에 비디오와 텍스트 프롬프트 전송
-        print("gemini_with_video")
         try:
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
@@ -260,7 +258,6 @@ class GeminiRefiner(RefinerStrategy):
             str: API 응답 텍스트
         """
         # Gemini에 오디오와 텍스트 프롬프트 전송
-        print("gemini_with_audio")
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[
@@ -293,7 +290,6 @@ class GeminiRefiner(RefinerStrategy):
             str: API 응답 텍스트
         """
         # Gemini에 텍스트 프롬프트 전송
-        print("gemini_with_text")
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[{'parts': [{'text': prompt}]}]
